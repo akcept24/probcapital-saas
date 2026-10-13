@@ -40,18 +40,19 @@ function sendJson(res, code, obj) {
 }
 
 function esc(s) {
-  return String(s == null ? '' : s).slice(0, 2000);
+  return String(s == null ? '' : s).slice(0, 2000)
+    .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
 }
 
 async function notifyTelegram(lead) {
   if (!TG_TOKEN || !TG_CHAT) return false;
   let text;
   if (lead.type === 'blueprint') {
-    text = '🧩 *ProbCapital SaaS — blueprint request*\n' +
+    text = '🧩 <b>ProbCapital SaaS — blueprint request</b>\n' +
       'Name: ' + esc(lead.name) + '\nContact: ' + esc(lead.contact) + '\n\n' +
       esc(lead.brief || '(no brief)');
   } else {
-    text = '🚀 *ProbCapital SaaS — new lead*\n' +
+    text = '🚀 <b>ProbCapital SaaS — new lead</b>\n' +
       'Name: ' + esc(lead.name) + '\nEmail: ' + esc(lead.email) +
       '\nCompany: ' + esc(lead.company) +
       '\nInterest: ' + esc(lead.interest || '—') +
@@ -61,8 +62,9 @@ async function notifyTelegram(lead) {
     const r = await fetch('https://api.telegram.org/bot' + TG_TOKEN + '/sendMessage', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ chat_id: TG_CHAT, text, parse_mode: 'Markdown' })
+      body: JSON.stringify({ chat_id: TG_CHAT, text, parse_mode: 'HTML' })
     });
+    if (!r.ok) console.error('telegram notify rejected:', r.status, (await r.text()).slice(0, 200));
     return r.ok;
   } catch (e) {
     console.error('telegram notify failed:', e.message);

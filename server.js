@@ -220,7 +220,19 @@ const server = http.createServer((req, res) => {
   if (p === '/') p = '/index.html';
   if (p === '/wizard' || p === '/demo') p = '/acme-prop-demo-wizard.html';
   const file = path.join(PUBLIC_DIR, p);
-  if (!file.startsWith(PUBLIC_DIR) || !fs.existsSync(file) || !fs.statSync(file).isFile()) {
+  const exists = file.startsWith(PUBLIC_DIR) && fs.existsSync(file) && fs.statSync(file).isFile();
+  if (exists && req.method === 'GET' && path.extname(file).toLowerCase() === '.html') {
+    // Lightweight page-view log (no cookies, no fingerprinting): day counts per page.
+    try {
+      fs.mkdirSync(DATA_DIR, { recursive: true });
+      fs.appendFile(path.join(DATA_DIR, 'views.jsonl'), JSON.stringify({
+        ts: new Date().toISOString(), path: url.pathname,
+        ref: (req.headers.referer || '').slice(0, 200) || null,
+        ua: (req.headers['user-agent'] || '').slice(0, 120)
+      }) + '\n', () => {});
+    } catch { /* never block the page on logging */ }
+  }
+  if (!exists) {
     const nf = path.join(PUBLIC_DIR, '404.html');
     if (fs.existsSync(nf)) {
       res.writeHead(404, { 'Content-Type': 'text/html; charset=utf-8' });

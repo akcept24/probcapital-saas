@@ -329,7 +329,7 @@
             <div class="form-grid">
               <div class="field span-2"><label for="legalName">Legal company name</label><input id="legalName" type="text" value="" maxlength="80" placeholder="Registered company name"><span class="field-error">Enter the legal company name</span></div>
               <div class="field"><label for="jurisdiction">Jurisdiction</label><input id="jurisdiction" type="text" value="" maxlength="48" placeholder="Country / state"><span class="field-error">Enter the jurisdiction</span></div>
-              <div class="field"><label for="ownerEmail">Owner contact</label><input id="ownerEmail" type="text" value="" maxlength="80" placeholder="name@company.com"><span class="field-error">Enter a valid business email</span></div>
+              <div class="field"><label for="ownerEmail">Owner contact (optional)</label><input id="ownerEmail" type="text" value="" maxlength="80" placeholder="name@company.com or @telegram"><span class="field-error">Enter a valid email or Telegram handle — or leave it empty</span></div>
             </div>
             <div class="info-strip"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="M12 10v6M12 7h.01"/></svg><span>Match-Prop publicly asks for a website, brand, domain, and business email; YourPropFirm notes that a full launch depends on external PSP/KYC approvals. We keep initial setup focused instead of turning it into a compliance questionnaire.</span></div>
             <p class="source-note">Sources: <a href="https://fxnewsgroup.com/forex-news/platforms/match-trade-technologies-launches-match-prop/" target="_blank" rel="noopener">Match-Prop</a> · <a href="https://yourpropfirm.com/solutions-whitelabel" target="_blank" rel="noopener">YourPropFirm</a>.</p>
@@ -612,7 +612,13 @@
         var ok = true;
         fields.forEach(function(id){
           var el=document.getElementById(id); var value=el.value.trim();
-          var valid=value.length>0 && (id.indexOf('Email')===-1 || /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value));
+          var valid;
+          if (id === 'ownerEmail') {
+            // Optional: empty is fine; otherwise an email or a Telegram handle/link.
+            valid = value === '' || /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value) || /^@?[A-Za-z0-9_]{5,}$/.test(value) || /^https?:\/\/t\.me\//.test(value);
+          } else {
+            valid = value.length>0 && (id.indexOf('Email')===-1 || /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value));
+          }
           el.closest('.field').classList.toggle('invalid',!valid); if(!valid) ok=false;
         });
         return ok;

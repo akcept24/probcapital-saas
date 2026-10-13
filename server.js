@@ -219,6 +219,8 @@ const server = http.createServer((req, res) => {
   let p = decodeURIComponent(url.pathname);
   if (p === '/') p = '/index.html';
   if (p === '/wizard' || p === '/demo') p = '/acme-prop-demo-wizard.html';
+  if (p === '/integrations') p = '/integrations.html';
+  if (p === '/learn' || p === '/learn/') p = '/learn/index.html';
   const file = path.join(PUBLIC_DIR, p);
   const exists = file.startsWith(PUBLIC_DIR) && fs.existsSync(file) && fs.statSync(file).isFile();
   if (exists && req.method === 'GET' && path.extname(file).toLowerCase() === '.html') {

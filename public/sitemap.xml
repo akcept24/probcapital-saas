@@ -11,8 +11,33 @@
     <priority>0.8</priority>
   </url>
   <url>
+    <loc>https://saas.probcapital.com/integrations.html</loc>
+    <changefreq>monthly</changefreq>
+    <priority>0.7</priority>
+  </url>
+  <url>
     <loc>https://saas.probcapital.com/status</loc>
     <changefreq>daily</changefreq>
     <priority>0.4</priority>
+  </url>
+  <url>
+    <loc>https://saas.probcapital.com/learn/</loc>
+    <changefreq>weekly</changefreq>
+    <priority>0.7</priority>
+  </url>
+  <url>
+    <loc>https://saas.probcapital.com/learn/flat-fee-vs-revenue-share.html</loc>
+    <changefreq>monthly</changefreq>
+    <priority>0.6</priority>
+  </url>
+  <url>
+    <loc>https://saas.probcapital.com/learn/how-to-launch-a-prop-firm.html</loc>
+    <changefreq>monthly</changefreq>
+    <priority>0.6</priority>
+  </url>
+  <url>
+    <loc>https://saas.probcapital.com/learn/prop-firm-risk-rules-explained.html</loc>
+    <changefreq>monthly</changefreq>
+    <priority>0.6</priority>
   </url>
 </urlset>

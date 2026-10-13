@@ -1,0 +1,270 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>The real cost of a 50% revenue share | ProbCapital Learn</title>
+<meta name="description" content="A 50% revenue share sounds like 'no monthly fee'. This worked example — real published vendor prices — shows what it costs at 200 and 770 challenges a month versus a flat fee.">
+<link rel="icon" type="image/svg+xml" href="/favicon.svg">
+<meta property="og:type" content="article">
+<meta property="og:url" content="https://saas.probcapital.com/learn/flat-fee-vs-revenue-share.html">
+<meta property="og:title" content="The real cost of a 50% revenue share">
+<meta property="og:description" content="What 'no monthly fee' actually costs at volume — the arithmetic, with real vendor prices, in one table.">
+<meta property="og:image" content="https://saas.probcapital.com/images/hero-desk.jpg">
+<meta name="twitter:card" content="summary_large_image">
+<style>
+  :root{
+    --bg:#0A0E1A; --bg2:#0D1330; --card:#111832;
+    --gold:#E8C05F; --gold-soft:rgba(232,192,95,.14); --gold-line:rgba(232,192,95,.35);
+    --text:#F2F4FA; --muted:#9AA3C0; --radius:20px;
+    --font:-apple-system,BlinkMacSystemFont,"SF Pro Display","Segoe UI",Inter,Roboto,Helvetica,Arial,sans-serif;
+  }
+  *{margin:0;padding:0;box-sizing:border-box}
+  html{scroll-behavior:smooth}
+  body{background:var(--bg);color:var(--text);font-family:var(--font);line-height:1.6;-webkit-font-smoothing:antialiased}
+  .wrap{max-width:1200px;margin:0 auto;padding:0 24px}
+  .eyebrow{display:inline-flex;align-items:center;gap:8px;color:var(--gold);font-size:12.5px;font-weight:700;letter-spacing:.22em;text-transform:uppercase;margin-bottom:22px}
+  .eyebrow::before{content:"";width:7px;height:7px;border-radius:50%;background:var(--gold)}
+  h1{font-size:clamp(42px,5.4vw,68px);line-height:1.04;font-weight:800;letter-spacing:-.02em;margin-bottom:24px}
+  h2{font-size:clamp(32px,3.6vw,50px);line-height:1.1;font-weight:800;letter-spacing:-.02em;margin-bottom:18px}
+  h2 .g, h1 .g{color:var(--gold)}
+  .lead{color:var(--muted);font-size:18px;max-width:640px}
+  .btn{display:inline-block;background:var(--gold);color:#14100A;font-weight:700;font-size:16px;padding:16px 36px;border-radius:999px;text-decoration:none;border:0;cursor:pointer;transition:transform .15s,box-shadow .15s}
+  .btn:hover{transform:translateY(-2px);box-shadow:0 12px 32px rgba(232,192,95,.28)}
+  .btn-ghost{background:transparent;color:var(--text);border:1px solid rgba(255,255,255,.22)}
+  .btn-ghost:hover{box-shadow:none;border-color:var(--gold)}
+
+  /* Header */
+  header{position:sticky;top:0;z-index:50;background:rgba(10,14,26,.9);backdrop-filter:blur(14px);border-bottom:1px solid rgba(255,255,255,.07)}
+  .nav{display:flex;align-items:center;justify-content:space-between;height:76px}
+  .wordmark{font-size:22px;font-weight:800;letter-spacing:-.01em;color:#fff;text-decoration:none}
+  .wordmark span{color:var(--gold)}
+  .nav-links{display:flex;align-items:center;gap:34px}
+  .nav-links a{color:var(--muted);text-decoration:none;font-size:15px;font-weight:500;transition:color .15s}
+  .nav-links a:hover{color:#fff}
+  .btn-nav{padding:12px 26px;font-size:14.5px}
+  .burger{display:none;background:none;border:0;cursor:pointer;padding:10px}
+  .burger span{display:block;width:24px;height:2px;background:#fff;margin:5px 0;border-radius:2px}
+
+  /* Cards (from landing) */
+  .card{background:var(--card);border:1px solid var(--gold-soft);border-radius:var(--radius);padding:32px 28px;transition:border-color .2s,transform .2s}
+  .card:hover{border-color:var(--gold-line);transform:translateY(-3px)}
+  .card h3{font-size:18.5px;margin-bottom:10px;letter-spacing:-.01em}
+  .card p{color:var(--muted);font-size:14.5px}
+
+  /* Tables (from landing) */
+  .table-scroll{overflow-x:auto;margin:26px 0 30px;border:1px solid var(--gold-soft);border-radius:var(--radius)}
+  table{width:100%;border-collapse:collapse;min-width:620px;font-size:14.5px}
+  th,td{padding:16px 20px;text-align:left;border-bottom:1px solid rgba(255,255,255,.06)}
+  thead th{background:rgba(0,0,0,.3);font-size:13px;letter-spacing:.08em;text-transform:uppercase;color:var(--muted)}
+  thead th.us{color:var(--gold)}
+  tbody th{color:#D6DCEF;font-weight:600}
+  td{color:var(--muted)}
+  td.us{color:var(--text);font-weight:600;background:rgba(232,192,95,.05)}
+
+  /* Article */
+  .article-hero{padding:90px 0 8px;background:linear-gradient(180deg,var(--bg2),var(--bg))}
+  .article-hero h1{font-size:clamp(34px,4.6vw,54px)}
+  .article{max-width:760px;margin:0 auto}
+  .standfirst{color:var(--muted);font-size:19px;line-height:1.65}
+  .byline{margin-top:28px;padding-top:18px;border-top:1px solid rgba(255,255,255,.08);color:var(--muted);font-size:14px}
+  .byline b{color:var(--text)}
+  .article-body{padding:36px 0 10px}
+  .article-body p{font-size:17.5px;line-height:1.85;color:#D6DCEF;margin-bottom:22px}
+  .article-body h2{font-size:30px;line-height:1.2;margin:48px 0 16px}
+  .article-body a{color:var(--gold)}
+  .article-body strong{color:var(--text)}
+  .callout{background:var(--card);border:1px solid var(--gold-soft);border-radius:var(--radius);padding:28px 30px;margin:36px 0}
+  .callout p{margin-bottom:0;font-size:16.5px}
+  .callout .btn{margin-top:18px}
+  .related{margin:64px 0 90px;padding-top:36px;border-top:1px solid rgba(255,255,255,.08)}
+  .related h3{font-size:20px;margin-bottom:18px}
+  .related-links{display:grid;grid-template-columns:1fr 1fr;gap:20px}
+  .related-links a{text-decoration:none;color:var(--text);display:block}
+  .related-links h4{font-size:17px;margin-bottom:8px}
+  .related-links p{color:var(--muted);font-size:14.5px;margin-bottom:0;line-height:1.6}
+
+  footer{border-top:1px solid rgba(255,255,255,.07);padding:56px 0 40px;background:#070B14}
+  .foot{display:flex;justify-content:space-between;align-items:flex-start;gap:32px;flex-wrap:wrap}
+  .foot p{color:var(--muted);font-size:14px;margin-top:10px;max-width:340px}
+  .foot-links{display:flex;gap:28px}
+  .foot-links a{color:var(--muted);text-decoration:none;font-size:14.5px}
+  .foot-links a:hover{color:var(--gold)}
+  .copy{margin-top:40px;padding-top:24px;border-top:1px solid rgba(255,255,255,.06);color:var(--muted);font-size:13px;display:flex;justify-content:space-between;flex-wrap:wrap;gap:12px}
+
+  @media(max-width:960px){
+    .nav-links{display:none;position:absolute;top:76px;left:0;right:0;background:rgba(10,14,26,.98);border-bottom:1px solid rgba(255,255,255,.07);padding:12px 24px 22px;flex-direction:column;align-items:stretch;gap:4px}
+    .nav-links.open{display:flex}
+    .nav-links a{padding:10px 0;font-size:16px}
+    .nav-links .btn-nav{margin-top:10px;text-align:center}
+    .burger{display:block}
+    .related-links{grid-template-columns:1fr}
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="wrap nav">
+    <a href="/" class="wordmark">Prob<span>Capital</span></a>
+    <nav class="nav-links" id="navLinks">
+      <a href="/#product">Platform</a>
+      <a href="/#pricing">Pricing</a>
+      <a href="/acme-prop-demo-wizard.html">Demo</a>
+      <a href="/#faq">FAQ</a>
+      <a href="/#lead" class="btn btn-nav">Talk to us</a>
+    </nav>
+    <button class="burger" id="burger" aria-label="Menu"><span></span><span></span><span></span></button>
+  </div>
+</header>
+
+<!-- Article hero -->
+<section class="article-hero">
+  <div class="wrap">
+    <div class="article">
+      <span class="eyebrow">Learn</span>
+      <h1>The real cost of a <span class="g">50% revenue share</span></h1>
+      <p class="standfirst">"No monthly fee" is the most expensive sentence in prop-firm software. Revenue share sounds like alignment — until you run your own numbers. Here they are, with real published vendor prices and a worked example you can check on a napkin.</p>
+      <div class="byline">By <b>ProbCapital</b> — we run our own firm on this stack.</div>
+    </div>
+  </div>
+</section>
+
+<!-- Article body -->
+<section style="padding:0 0 20px">
+  <div class="wrap">
+    <div class="article article-body">
+
+      <h2>The pitch sounds fair</h2>
+      <p>Every revenue-share offer opens the same way: you pay little or nothing fixed, the vendor earns only when you earn, interests aligned. For a founder who hasn't sold a challenge yet, that feels like the safe option — no $2,490 leaving the account in a month when you sold almost nothing.</p>
+      <p>The problem isn't the first month. The problem is that the percentage applies to your gross, forever, and it scales exactly as fast as your marketing works. A flat fee is a cost you outgrow. A revenue share is a partner you can't.</p>
+
+      <h2>What 50% actually applies to</h2>
+      <p>Not profit. Not what's left after ad spend, refunds, chargebacks and payout costs. Fifty percent of <strong>gross</strong> challenge revenue — every dollar that comes through your checkout, including challenges you discounted with a promo code to fill a slow week. Run a sale and the vendor still takes half of the smaller number: your margin absorbs the discount, their meter doesn't care.</p>
+      <p>It also never gets cheaper with loyalty or volume. Month one and month thirty are billed at the same rate, on a number that — if you're doing your job — keeps getting bigger.</p>
+
+      <h2>The worked example</h2>
+      <p><em>Example — illustrative volumes, real published prices.</em> Say your firm sells challenges at an average of about $350, a normal mid-market price point. Here is one month, two ways:</p>
+
+      <div class="table-scroll">
+        <table>
+          <thead>
+            <tr>
+              <th>Per month</th>
+              <th>200 challenges</th>
+              <th>770 challenges</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <th>Gross revenue (≈ $350 avg)</th>
+              <td>$70,000</td>
+              <td>$269,500</td>
+            </tr>
+            <tr>
+              <th>50% revenue share to the vendor</th>
+              <td>$35,000</td>
+              <td>$134,750</td>
+            </tr>
+            <tr>
+              <th>You keep — revenue share</th>
+              <td>$35,000</td>
+              <td>$134,750</td>
+            </tr>
+            <tr>
+              <th>ProbCapital flat fee</th>
+              <td class="us">$2,490 (Growth)</td>
+              <td class="us">$3,990 (Scale)</td>
+            </tr>
+            <tr>
+              <th>You keep — flat fee</th>
+              <td class="us">$67,510</td>
+              <td class="us">$265,510</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <p>The vendor prices behind this table, as published: YourPropFirm's Prop Suite charges a <strong>$2,749 setup</strong> and no monthly fee, in exchange for <strong>50% of revenue</strong>. PropAccount charges a <strong>$3,000 setup</strong> plus a revenue share. Our pricing is a <strong>$1,900 one-time setup</strong>, then $1,490 (Launch), $2,490 (Growth) or $3,990 (Scale) a month — 0% revenue share and no per-trader fees on every plan.</p>
+
+      <h2>A year of it</h2>
+      <p>Extend the 200-challenge example to twelve months. The revenue-share structure pays out $35,000 × 12 = $420,000 in share, plus the $2,749 setup: <strong>$422,749</strong>. The flat structure on Growth costs $1,900 + 12 × $2,490 = <strong>$31,780</strong>, all in. The difference is roughly $391,000 a year. That is not a software bill. That is a co-founder — one who doesn't take your support tickets.</p>
+      <p>At the 770-challenge level the gap stops being funny altogether: the share alone is $134,750 a month, against a $3,990 flat fee. Success doesn't dilute a revenue share. It compounds it.</p>
+
+      <h2>Where the break-even sits</h2>
+      <p>A $2,490 flat fee equals a 50% share at $4,980 of monthly gross — about 14 challenges at $350. Almost any firm doing real acquisition crosses that line in its first month of marketing. Below it, you're small enough that the platform fee was never your binding constraint anyway.</p>
+      <p>Read that again, because it's the whole article: revenue share is cheapest precisely when it matters least, and most expensive for the entire remaining life of your firm.</p>
+
+      <h2>"But the vendor only wins when I win"</h2>
+      <p>This is the line that sells revenue share, and it isn't true — because the share is calculated on gross, not on your profit. Your profit is what's left after ad spend, affiliate commissions, refunds, chargebacks and payouts to funded traders. None of those reduce the vendor's cut.</p>
+      <p>So picture a genuinely bad month: acquisition costs spike, a cohort of strong traders draws heavy payouts, and the firm roughly breaks even — or dips below it. The vendor still takes half of everything that came through the checkout. They won. You didn't. A flat fee, whatever else you think of it, is the same in your best month and your worst; a percentage of gross is a senior claim on your revenue that gets paid before your costs do, in every month, including the ones where there is nothing left for you.</p>
+
+      <h2>The honest case for a share</h2>
+      <p>To be fair: a percentage can be rational when the vendor genuinely carries something on their side of the ledger — funding your payout liability, carrying real risk, or bringing distribution you cannot buy elsewhere. In that case, price it like what it is: financing. Compare it against your cost of capital, negotiate caps and a buy-out clause, and put a term on it.</p>
+      <p>But if the offer is the same software, the same support, and your own PSP keys moving your own money — with the vendor taking half of gross for hosting it — that's not alignment. That's the most expensive billing method in the industry wearing a friendly name.</p>
+
+      <h2>Incentives you can feel</h2>
+      <p>A revenue-share vendor makes more money when you sell more challenges at any quality. More refunds, more abusive traders, more payout disputes do not reduce their cut — discount-driven volume increases it. A flat-fee vendor makes the same money whether you sell 200 or 2,000 challenges, so the only way they keep you is uptime, features and support. Decide whose incentives you want sitting inside your P&amp;L.</p>
+
+      <h2>What flat costs here, in full</h2>
+      <p>Setup: $1,900, once. Launch $1,490/mo, Growth $2,490/mo, Scale $3,990/mo. Brand, domain and hosting included. Zero revenue share, zero per-trader fees, and your traders pay through your own PSP keys — platform money never touches our accounts. That is the entire price list. There is no second page.</p>
+      <p>Notice what growth looks like under each model. Outgrow Growth and you move to Scale: a step of $1,500 a month, known in advance, budgeted like rent. Under a revenue share, growth reprices itself automatically — every successful campaign, every good month, raises next month's platform bill by half of the gain. One model charges you for the software. The other charges you for succeeding.</p>
+
+      <div class="callout">
+        <p><strong>Run your own numbers.</strong> Don't take this table's word for it — move the sliders in our calculator with your own volumes and prices, and watch the comparison line update live.</p>
+        <a href="/#calculator" class="btn">Open the calculator</a>
+        <p style="margin-top:16px;font-size:15px">Or skip the math and <a href="/acme-prop-demo-wizard.html">configure the firm itself</a> in the demo wizard.</p>
+      </div>
+
+      <div class="related">
+        <h3>Keep reading</h3>
+        <div class="related-links">
+          <a href="/learn/how-to-launch-a-prop-firm.html" class="card">
+            <h4>How to launch a prop firm in 2026: the operator checklist</h4>
+            <p>Brand, plans, payments, KYC, risk and support — in the order to make the decisions.</p>
+          </a>
+          <a href="/learn/prop-firm-risk-rules-explained.html" class="card">
+            <h4>Risk rules, explained like an operator</h4>
+            <p>Consistency, drawdowns, news trading, weekend holding and copy-trade detection.</p>
+          </a>
+        </div>
+        <p style="margin-top:22px;font-size:15px"><a href="/learn/">← All operator notes</a></p>
+      </div>
+
+    </div>
+  </div>
+</section>
+
+<footer>
+  <div class="wrap">
+    <div class="foot">
+      <div>
+        <a href="/" class="wordmark">Prob<span>Capital</span></a>
+        <p>White-label prop firm platform. Proprietary terminal, risk engine and trader tools under your brand.</p>
+      </div>
+      <div class="foot-links">
+        <a href="/#product">Product</a>
+        <a href="/#pricing">Pricing</a>
+        <a href="/learn/">Learn</a>
+        <a href="/#faq">FAQ</a>
+        <a href="/acme-prop-demo-wizard.html">Live demo</a>
+        <a href="/status">System status</a>
+      </div>
+    </div>
+    <div class="copy">
+      <span>© 2026 ProbCapital. All rights reserved.</span>
+      <span>hello@probcapital.com · t.me/probcapital</span>
+    </div>
+  </div>
+</footer>
+
+<script>
+  document.getElementById('burger').addEventListener('click', function(){
+    document.getElementById('navLinks').classList.toggle('open');
+  });
+  document.querySelectorAll('.nav-links a').forEach(function(a){
+    a.addEventListener('click', function(){ document.getElementById('navLinks').classList.remove('open'); });
+  });
+</script>
+</body>
+</html>

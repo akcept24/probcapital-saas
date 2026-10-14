@@ -12,6 +12,14 @@ const DATA_DIR = process.env.DATA_DIR || path.join(__dirname, 'data');
 const LEADS_FILE = path.join(DATA_DIR, 'leads.jsonl');
 const TG_TOKEN = process.env.TELEGRAM_BOT_TOKEN || '';
 const TG_CHAT = process.env.LEADS_CHAT_ID || '';
+// Lead auto-reply email via Resend (https://resend.com). Optional: when
+// RESEND_API_KEY is not set the auto-reply is a logged no-op and lead intake
+// works exactly as before. probcapital.com is already a verified sending
+// domain in the Resend account the main ProbCapital app sends from.
+const RESEND_API_KEY = process.env.RESEND_API_KEY || '';
+const AUTOREPLY_FROM = process.env.LEAD_AUTOREPLY_FROM || 'ProbCapital <noreply@probcapital.com>';
+const AUTOREPLY_REPLY_TO = process.env.LEAD_AUTOREPLY_REPLY_TO || '';
+const EMAIL_RE = /^[^@\s]+@[^@\s]+\.[^@\s]+$/;
 
 const MIME = {
   '.html': 'text/html; charset=utf-8',
@@ -72,6 +80,119 @@ async function notifyTelegram(lead) {
   }
 }
 
+// ---------- Lead auto-reply email ----------
+// Sent after a lead is stored and the ops chat is notified. Fire-and-forget:
+// a mail failure must never fail or delay the lead submission itself.
+
+function unesc(s) {
+  return String(s == null ? '' : s)
+    .replace(/&lt;/g, '<').replace(/&gt;/g, '>').replace(/&amp;/g, '&');
+}
+
+function interestNextStep(interest) {
+  switch (interest) {
+    case 'Platform walkthrough':
+      return 'You asked for a platform walkthrough: we will come back with a few time slots for a live session covering the trader terminal, the admin dashboard and the trader onboarding flow.';
+    case 'Free brand preview (48 hours)':
+      return 'You asked for the free brand preview: it is in the queue and, as promised on the site, it will be ready within 48 hours — we will send it to this email address.';
+    case 'Pricing & plans':
+      return 'You asked about pricing and plans: we will reply with the plan that fits your volumes and the full all-in cost — flat monthly pricing, no revenue share and no per-trader fees.';
+    case 'Migration from my current provider':
+      return 'You asked about migrating from your current provider: we will reply with how the migration works, what we need from your side, and a realistic timeline for your setup.';
+    default:
+      return 'We have noted your request and will come back with the details relevant to your situation.';
+  }
+}
+
+function buildAutoreply(lead) {
+  const name = unesc(lead.name).trim();
+  const first = name.split(/\s+/)[0] || 'there';
+  const replyLine = AUTOREPLY_REPLY_TO
+    ? 'If you would like to add anything in the meantime, just reply to this email — it reaches our team directly.'
+    : 'If you would like to add anything in the meantime, you can reach us through the contact form at https://saas.probcapital.com — mention your name so we can match it to this request.';
+  let subject, intro, nextStep;
+  if (lead.type === 'blueprint') {
+    subject = 'Your ProbCapital blueprint — request received';
+    intro = 'this is a quick confirmation that we have received your platform blueprint request.';
+    nextStep = 'Our team will send the full configuration plus a tailored launch estimate based on the setup you built in the demo wizard. No spam — one message, as promised.';
+  } else {
+    subject = 'We received your request — ProbCapital';
+    intro = 'this is a quick confirmation that we have received your request.';
+    nextStep = interestNextStep(lead.interest);
+  }
+  const text =
+    'Hi ' + first + ',\n\n' +
+    'Thanks for reaching out — ' + intro + '\n\n' +
+    nextStep + '\n\n' +
+    'A member of our team will also reply personally — on our site we promise a reply within one business day, and we hold ourselves to that.\n\n' +
+    replyLine + '\n\n' +
+    '— The ProbCapital team\nhttps://saas.probcapital.com\n';
+  const html =
+    '<!DOCTYPE html><html><body style="margin:0;background:#F6F7FB;padding:32px 16px;font-family:system-ui,-apple-system,\'Segoe UI\',Roboto,sans-serif;color:#141A2E">' +
+    '<div style="max-width:600px;margin:0 auto;background:#FFFFFF;border:1px solid #E4E7F2;border-radius:14px;overflow:hidden">' +
+    '<div style="background:#0A0E1A;padding:22px 30px"><span style="color:#E8C05F;letter-spacing:.18em;font-size:12px;font-weight:700">PROBCAPITAL</span></div>' +
+    '<div style="padding:28px 30px;font-size:15px;line-height:1.65">' +
+    '<p style="margin:0 0 14px">Hi ' + esc(first) + ',</p>' +
+    '<p style="margin:0 0 14px">Thanks for reaching out — ' + esc(intro) + '</p>' +
+    '<p style="margin:0 0 14px">' + esc(nextStep) + '</p>' +
+    '<p style="margin:0 0 14px">A member of our team will also reply personally — on our site we promise a reply within one business day, and we hold ourselves to that.</p>' +
+    '<p style="margin:0">' + esc(replyLine) + '</p>' +
+    '</div>' +
+    '<div style="padding:18px 30px;border-top:1px solid #E4E7F2;color:#7A8199;font-size:13px">— The ProbCapital team · <a href="https://saas.probcapital.com" style="color:#B08A2E">saas.probcapital.com</a></div>' +
+    '</div></body></html>';
+  return { subject, text, html };
+}
+
+// Where can this lead actually be emailed? The main form always carries a
+// validated email. The wizard blueprint accepts a Telegram handle OR an
+// email as contact; the wizard's optional owner contact (config.ownerEmail)
+// is the fallback. A Telegram-only lead simply gets no email.
+function autoreplyRecipient(lead) {
+  if (lead.type === 'blueprint') {
+    if (EMAIL_RE.test(lead.contact || '')) return lead.contact;
+    const owner = lead.config && lead.config.ownerEmail;
+    if (owner && EMAIL_RE.test(String(owner))) return String(owner);
+    return null;
+  }
+  return EMAIL_RE.test(lead.email || '') ? lead.email : null;
+}
+
+async function sendAutoreply(lead) {
+  const to = autoreplyRecipient(lead);
+  if (!to) {
+    console.log('autoreply skipped (no email address):', lead.type, lead.email || lead.contact || '—');
+    return false;
+  }
+  if (!RESEND_API_KEY) {
+    console.log('autoreply skipped (RESEND_API_KEY not configured) for:', to);
+    return false;
+  }
+  const { subject, text, html } = buildAutoreply(lead);
+  const payload = { from: AUTOREPLY_FROM, to: [to], subject, text, html };
+  if (AUTOREPLY_REPLY_TO) payload.reply_to = AUTOREPLY_REPLY_TO;
+  try {
+    const ctl = new AbortController();
+    const t = setTimeout(() => ctl.abort(), 10000);
+    const r = await fetch('https://api.resend.com/emails', {
+      method: 'POST',
+      signal: ctl.signal,
+      headers: { 'Authorization': 'Bearer ' + RESEND_API_KEY, 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload)
+    });
+    clearTimeout(t);
+    if (!r.ok) {
+      console.error('autoreply rejected:', r.status, (await r.text()).slice(0, 200), 'to:', to);
+      return false;
+    }
+    const data = await r.json().catch(() => ({}));
+    console.log('autoreply sent to:', to, 'id:', data.id || '—');
+    return true;
+  } catch (e) {
+    console.error('autoreply failed:', e.message, 'to:', to);
+    return false;
+  }
+}
+
 function handleLead(req, res, ip) {
   let raw = '';
   req.on('data', c => { raw += c; if (raw.length > 65536) req.destroy(); });
@@ -105,6 +226,8 @@ function handleLead(req, res, ip) {
     }
     lead.telegram = await notifyTelegram(lead);
     console.log('lead stored:', type, lead.email || lead.contact, 'tg:', lead.telegram);
+    // Auto-reply to the lead: fire-and-forget, never blocks or fails intake.
+    sendAutoreply(lead).catch(e => console.error('autoreply crashed:', e.message));
     return sendJson(res, 200, { ok: true });
   });
 }

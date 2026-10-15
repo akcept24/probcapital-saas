@@ -41,6 +41,35 @@ function rateLimited(ip) {
   return arr.length > 10;
 }
 
+// Security headers applied to every response (set centrally in the request
+// handler below via res.setHeader, so static files, API JSON, /status and
+// error pages all carry them). CSP notes: every page ships exactly one
+// inline <script> and inline <style> blocks and loads Google Fonts
+// (stylesheet from fonts.googleapis.com, files from fonts.gstatic.com);
+// images are local, JS fetches are same-origin ('/api/lead', '/status.json').
+// 'unsafe-inline' in script-src/style-src is therefore required for the
+// wizard, calculator and lead form to keep working — a nonce-based CSP
+// would need a markup rewrite.
+const SECURITY_HEADERS = {
+  'Strict-Transport-Security': 'max-age=63072000; includeSubDomains; preload',
+  'X-Frame-Options': 'SAMEORIGIN',
+  'X-Content-Type-Options': 'nosniff',
+  'Referrer-Policy': 'origin-when-cross-origin',
+  'Permissions-Policy': 'camera=(), microphone=(), geolocation=()',
+  'Content-Security-Policy': [
+    "default-src 'self'",
+    "script-src 'self' 'unsafe-inline'",
+    "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
+    "font-src 'self' https://fonts.gstatic.com",
+    "img-src 'self' data:",
+    "connect-src 'self'",
+    "object-src 'none'",
+    "base-uri 'self'",
+    "form-action 'self'",
+    "frame-ancestors 'self'"
+  ].join('; ')
+};
+
 function sendJson(res, code, obj) {
   const body = JSON.stringify(obj);
   res.writeHead(code, { 'Content-Type': 'application/json; charset=utf-8' });
@@ -328,6 +357,7 @@ function statusPageHtml() {
 }
 
 const server = http.createServer((req, res) => {
+  for (const [k, v] of Object.entries(SECURITY_HEADERS)) res.setHeader(k, v);
   const ip = (req.headers['x-forwarded-for'] || req.socket.remoteAddress || '').toString().split(',')[0].trim();
   const url = new URL(req.url, 'http://localhost');
   if (url.pathname === '/health') return sendJson(res, 200, { ok: true });

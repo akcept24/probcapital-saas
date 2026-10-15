@@ -358,7 +358,13 @@ function statusPageHtml() {
 
 const server = http.createServer((req, res) => {
   for (const [k, v] of Object.entries(SECURITY_HEADERS)) res.setHeader(k, v);
-  const ip = (req.headers['x-forwarded-for'] || req.socket.remoteAddress || '').toString().split(',')[0].trim();
+  // Rate-limit key: the LAST x-forwarded-for entry — behind Traefik each
+  // proxy appends, so the last entry is the closest trusted hop's view of
+  // the client; the FIRST entry is fully client-controlled and keying on
+  // it let a sender rotate fake IPs to bypass the lead limit entirely.
+  // Falls back to the socket address when no XFF is present.
+  const xffEntries = (req.headers['x-forwarded-for'] || '').toString().split(',').map(s => s.trim()).filter(Boolean);
+  const ip = xffEntries.length > 0 ? xffEntries[xffEntries.length - 1] : (req.socket.remoteAddress || '');
   const url = new URL(req.url, 'http://localhost');
   if (url.pathname === '/health') return sendJson(res, 200, { ok: true });
   if (url.pathname === '/status.json') return sendJson(res, 200, { since: statusData.since, services: statusSummary() });

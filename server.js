@@ -41,6 +41,21 @@ function rateLimited(ip) {
   return arr.length > 10;
 }
 
+// Global circuit breaker: per-IP keying alone is defeated by senders
+// behind rotating egress IPs (each request arrives under a fresh last
+// XFF hop), and the in-memory map resets on every deploy. A B2B landing
+// never receives 60 genuine leads in an hour, so a global cap costs
+// nothing and bounds Telegram/CRM spam floods (and, once RESEND_API_KEY
+// is set, auto-reply relay abuse) no matter how the sender rotates IPs.
+const GLOBAL_LEAD_CAP_PER_HOUR = 60;
+let globalHits = [];
+function globalRateLimited() {
+  const now = Date.now();
+  globalHits = globalHits.filter(t => now - t < 3600e3);
+  globalHits.push(now);
+  return globalHits.length > GLOBAL_LEAD_CAP_PER_HOUR;
+}
+
 // Security headers applied to every response (set centrally in the request
 // handler below via res.setHeader, so static files, API JSON, /status and
 // error pages all carry them). CSP notes: every page ships exactly one
@@ -224,13 +239,25 @@ async function sendAutoreply(lead) {
 
 function handleLead(req, res, ip) {
   let raw = '';
-  req.on('data', c => { raw += c; if (raw.length > 65536) req.destroy(); });
+  let tooBig = false;
+  req.on('data', c => {
+    if (tooBig) return;
+    raw += c;
+    if (raw.length > 65536) {
+      // Clean 413 instead of a bare socket destroy (which surfaces as a
+      // confusing 502 through the proxy).
+      tooBig = true;
+      sendJson(res, 413, { ok: false, error: 'payload_too_large' });
+      req.destroy();
+    }
+  });
   req.on('end', async () => {
+    if (tooBig) return;
     let body;
     try { body = JSON.parse(raw || '{}'); } catch { return sendJson(res, 400, { ok: false, error: 'bad_json' }); }
     // Honeypot: bots fill the hidden "website" field. Pretend success.
     if (body.website) return sendJson(res, 200, { ok: true });
-    if (rateLimited(ip)) return sendJson(res, 429, { ok: false, error: 'rate_limited' });
+    if (rateLimited(ip) || globalRateLimited()) return sendJson(res, 429, { ok: false, error: 'rate_limited' });
 
     const type = body.type === 'blueprint' ? 'blueprint' : 'lead';
     const lead = { type, ts: new Date().toISOString(), ip };
@@ -375,7 +402,10 @@ const server = http.createServer((req, res) => {
   if (url.pathname === '/api/lead' && req.method === 'POST') return handleLead(req, res, ip);
   if (req.method !== 'GET' && req.method !== 'HEAD') { res.writeHead(405); return res.end(); }
 
-  let p = decodeURIComponent(url.pathname);
+  // Malformed percent-encoding must never throw inside the handler —
+  // fall through to the 404 page instead.
+  let p;
+  try { p = decodeURIComponent(url.pathname); } catch { p = '/__malformed__'; }
   if (p === '/') p = '/index.html';
   if (p === '/wizard' || p === '/demo') p = '/acme-prop-demo-wizard.html';
   if (p === '/integrations') p = '/integrations.html';

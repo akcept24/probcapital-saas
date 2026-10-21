@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>How to launch a prop firm in 2026: the operator checklist | ProbCapital Learn</title>
-<meta name="description" content="The launch checklist we give new operators: brand and domain, challenge plans, your own PSP keys, a KYC provider, risk rules and support — and a realistic 7-day platform timeline.">
+<meta name="description" content="The launch checklist we give new operators: brand and domain, challenge plans, payments, identity verification, risk rules and support — and a realistic 7-day platform timeline.">
 <link rel="icon" type="image/svg+xml" href="/favicon.svg">
 <meta property="og:type" content="article">
 <meta property="og:url" content="https://saas.probcapital.com/learn/how-to-launch-a-prop-firm.html">
@@ -129,20 +129,20 @@
 
       <h2>1. Brand and domain</h2>
       <p>Pick a name a trader can say out loud, spell after hearing it once, and type into a browser. Buy the domain yourself, in your own registrar account — your firm should never live on an address you don't control.</p>
-      <p>Then lock the visual identity: logo, colors, tone of voice. It has to survive contact with everything a trader sees — terminal, dashboard, checkout, emails, payout certificates. Traders screenshot inconsistencies and read them as risk. Consistency isn't decoration; it's your cheapest trust signal, and it's much easier to set before launch than to retrofit after your first thousand accounts.</p>
+      <p>Then lock the visual identity: logo, colors, tone of voice. It has to survive contact with everything a trader sees — terminal, dashboard, checkout, emails, phase-pass certificates. Traders screenshot inconsistencies and read them as risk. Consistency isn't decoration; it's your cheapest trust signal, and it's much easier to set before launch than to retrofit after your first thousand accounts.</p>
 
       <h2>2. Challenge plans and rules</h2>
       <p>Decide your ladder before anything is configured: account sizes, one-step or two-step evaluations, profit targets, the drawdown model, the profit split, and the fee for each size.</p>
       <p>Price from your own economics, not from a competitor's homepage. Your fee has to cover acquisition cost, the traders who will pass and draw payouts, and the platform — with margin left over. And write the rules page now, in plain language a tired person can follow at 1 a.m. Rules written after the first dispute are already too late: every trader who bought before the rewrite owns the old promise.</p>
       <p>Two smaller decisions belong in this step, because changing them later always looks like moving the goalposts. First, discounts: decide your promo policy — how often, how deep, who qualifies — before your marketing team invents one under pressure. Second, refunds: state plainly when a challenge fee comes back and when it doesn't. Traders can accept a strict policy they read before paying. What they cannot accept, and will say so publicly, is a policy they meet for the first time in a support ticket.</p>
 
-      <h2>3. Payments: your PSP, your keys, your money</h2>
-      <p>Open your payment service provider account early. Approvals run on the PSP's clock, not yours, and this step — not the software — is the one that most often decides your launch date.</p>
-      <p>Structurally, insist on one thing: trader money flows directly to you, through your own PSP keys, into your own accounts. A platform vendor should sell you software, never sit inside your money flow. If a provider's model requires your revenue to pass through their hands — or be shared with them — understand exactly why before you sign. (We did the math on that model in <a href="/learn/flat-fee-vs-revenue-share.html">the real cost of a 50% revenue share</a>.)</p>
-      <p>Before launch, buy your own cheapest challenge with a real card and walk the entire path: payment, confirmation email, account provisioning, and the refund route. If anything in that chain embarrasses you, it will embarrass you at scale.</p>
+      <h2>3. Payments: decide your rails early</h2>
+      <p>Sort your payment rails early. On our platform the live checkout is crypto via Plisio; card processing is not live today, so if your market needs cards, plan that track separately and early — approvals run on the provider's clock, not yours, and this step — not the software — is the one that most often decides your launch date.</p>
+      <p>Structurally, insist on one thing: know exactly where trader money sits at every step. A platform vendor should sell you software, never hide a revenue share inside your money flow. If a provider's model requires your revenue to pass through their hands — or be shared with them — understand exactly why before you sign. (We did the math on that model in <a href="/learn/flat-fee-vs-revenue-share.html">the real cost of a 50% revenue share</a>.)</p>
+      <p>Before launch, buy your own cheapest challenge with crypto via Plisio and walk the entire path: payment, confirmation email, account provisioning, and the refund route. If anything in that chain embarrasses you, it will embarrass you at scale.</p>
 
-      <h2>4. KYC: one provider, chosen on purpose</h2>
-      <p>You need identity verification before money leaves. A payout to an unverified person is a compliance and fraud problem, not a growth tactic. The mainstream choices are <strong>Sumsub, Veriff and Shufti</strong>; on our stack you pick the provider and hold the contract directly, so the verification data — and the pricing — stay yours.</p>
+      <h2>4. Verification: built in, reviewed by your team</h2>
+      <p>You need identity verification before money leaves. A payout to an unverified person is a compliance and fraud problem, not a growth tactic. On our stack verification is built in: traders upload ID documents to private storage, your staff review them in a manual queue, and payouts stay blocked until verification is approved — no third-party KYC vendor to contract.</p>
       <p>Decide where the gate sits. Heavy verification at signup costs conversion; verification at the first payout request is the pattern most firms settle on, because that's the moment identity actually matters. Either can be right. What can't be right is deciding later: state the policy in your rules before the first sale, not in a support reply after the first blocked payout.</p>
 
       <h2>5. Risk and anti-abuse rules</h2>
@@ -155,8 +155,8 @@
       <p>One operational habit is worth building from day one: a fixed payout rhythm. Pick a processing schedule you can keep even in your worst week — not your best — publish it, and then never miss it quietly. If a payout will be late, the trader should hear it from you before they have to ask. In this industry, "they pay, and they tell you what's happening" is a complete brand strategy; most of your competitors will fail at the second half.</p>
 
       <h2>7. The timeline, honestly</h2>
-      <p>With brand assets ready and your PSP and KYC accounts open, the platform itself goes live in about <strong>7 days</strong>: brand and domain setup, challenge plans configured, your PSP and KYC keys connected, and a pilot run with your own team before the first real trader arrives.</p>
-      <p>That is why the order of this checklist matters. Items 3 and 4 — payments and KYC — run on banks' and providers' clocks. Start those applications first, do the brand and the plans while you wait, and the software will be ready before the approvals are.</p>
+      <p>With brand assets ready and your payment rails decided, the platform itself goes live in about <strong>7 days</strong>: brand and domain setup, challenge plans configured, crypto checkout connected, and a pilot run with your own team before the first real trader arrives.</p>
+      <p>That is why the order of this checklist matters. Item 3 — payments — runs on providers' clocks. Start that track first, do the brand and the plans while you wait, and the software will be ready before the approvals are.</p>
 
       <div class="callout">
         <p><strong>Rehearse the checklist in twenty minutes.</strong> The public demo wizard walks the same sequence — brand, company, program, rules, stack, launch — and shows you the trader's view of every decision as you make it. No email gate, no sales call.</p>

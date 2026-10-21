@@ -346,7 +346,7 @@
                 <button class="choice" data-value="100000" type="button">$100K</button>
               </div></div>
               <div class="field span-2"><span class="label">Evaluation model</span><div class="choices" style="--cols:2" data-choice="model">
-                <button class="choice active" data-value="1-Step" type="button">1-Step<small>Fast track to funded</small></button>
+                <button class="choice active" data-value="1-Step" type="button">1-Step<small>Single-phase evaluation</small></button>
                 <button class="choice" data-value="2-Step" type="button">2-Step<small>Lower fee, stricter evaluation</small></button>
               </div></div>
               <div class="field span-2"><div class="range-head"><label for="fee">Challenge fee</label><span class="range-value" id="feeValue">$349</span></div><input id="fee" type="range" min="149" max="799" step="10" value="349"><div class="range-scale"><span>$149</span><span>$799</span></div></div>
@@ -387,9 +387,7 @@
                 <button class="choice" data-value="Scale" data-monthly="3990" type="button">Scale<small>$3,990 / mo</small></button>
               </div></div>
               <div class="field span-2"><span class="label">Payment methods</span><div class="choices compact" data-multi="payments">
-                <button class="choice active" data-value="Cards" type="button">Cards</button>
-                <button class="choice active" data-value="Crypto" type="button">Crypto</button>
-                <button class="choice" data-value="Apple Pay" type="button">Apple Pay</button>
+                <button class="choice active" data-value="Crypto" type="button">Crypto<small>Plisio checkout — live today</small></button>
               </div></div>
               <div class="field span-2"><span class="label">Dashboard languages</span><div class="choices compact" data-multi="languages">
                 <button class="choice active" data-value="EN" type="button">English</button>
@@ -397,10 +395,8 @@
                 <button class="choice" data-value="RU" type="button">Russian</button>
               </div></div>
               <div class="field span-2"><span class="label">Trader KYC</span><div class="choices compact" data-choice="kycProvider">
-                <button class="choice active" data-value="Sumsub" type="button">Sumsub<small>KYC integration</small></button>
-                <button class="choice" data-value="Veriff" type="button">Veriff<small>KYC integration</small></button>
-                <button class="choice" data-value="Shufti" type="button">Shufti<small>KYC integration</small></button>
-              </div><p class="source-note">These KYC providers are publicly listed by <a href="https://yourpropfirm.com/platform-dashboard-crm" target="_blank" rel="noopener">YourPropFirm</a>. Provider onboarding and account approval are handled separately.</p></div>
+                <button class="choice active" data-value="Built-in verification" type="button">Built-in verification<small>Document upload + manual review</small></button>
+              </div><p class="source-note">Verification is built into the platform: traders upload ID documents to private storage and your team reviews them in a manual admin queue — no third-party KYC vendor.</p></div>
             </div>
           </section>
 
@@ -467,8 +463,8 @@
         </div>
         <div class="dash-card stack-preview">
           <div class="stack-line"><span>Platform</span><strong id="platformPreview">Proprietary terminal · Launch</strong></div>
-          <div class="stack-line"><span>Trader KYC</span><strong id="kycPreview">Sumsub</strong></div>
-          <div class="stack-line"><span>Payments</span><strong id="paymentsPreview">Cards, Crypto</strong></div>
+          <div class="stack-line"><span>Trader KYC</span><strong id="kycPreview">Built-in verification</strong></div>
+          <div class="stack-line"><span>Payments</span><strong id="paymentsPreview">Crypto</strong></div>
           <div class="stack-line"><span>Languages</span><strong id="languagesPreview">EN</strong></div>
         </div>
         <div class="preview-foot">All product and risk settings stay synced with the wizard.</div>
@@ -484,8 +480,8 @@
         accountSize: 50000, model: '1-Step', fee: 349, target: 10, split: 90,
         dailyLoss: 5, maxLoss: 10, consistency: true, news: false, weekend: false, appeal: true,
         platform: 'Proprietary terminal', plan: 'Launch', monthly: 1490,
-        payments: ['Cards', 'Crypto'], languages: ['EN'],
-        legalName: '', jurisdiction: '', ownerEmail: '', kycProvider: 'Sumsub'
+        payments: ['Crypto'], languages: ['EN'],
+        legalName: '', jurisdiction: '', ownerEmail: '', kycProvider: 'Built-in verification'
       };
       var state = JSON.parse(JSON.stringify(defaults));
       var totalSteps = 6;

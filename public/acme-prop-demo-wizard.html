@@ -406,7 +406,7 @@
             <div class="summary-grid" id="summaryGrid"></div>
             <div class="cost-band">
               <div class="cost-top"><div><span>Proposal estimate</span><strong id="costMain">$6,000 + $1,490/mo</strong></div><span id="planBadge">LAUNCH</span></div>
-              <small>A fixed-price model with no revenue share. Technical launch typically fits the market benchmark of 3–7 days, while a full go-live depends on external PSP/KYC approvals. Final pricing depends on integrations and migration scope.</small>
+              <small>A fixed-price model with no revenue share. Technical launch typically fits the market benchmark of 3–7 days, while a full go-live depends on external PSP/KYC approvals. The $6,000 setup and your monthly fee are fixed; the final total changes only if you add custom integrations or migration scope beyond the standard launch.</small>
             </div>
             <p class="source-note">Launch-time benchmark: public materials from <a href="https://yourpropfirm.com/solutions-whitelabel" target="_blank" rel="noopener">YourPropFirm</a> and <a href="https://propaccount.com/" target="_blank" rel="noopener">PropAccount</a>. This is not a delivery-time guarantee.</p>
             <div class="launch-actions">
@@ -656,7 +656,7 @@
         fetch('/api/lead', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ type: 'blueprint', name: name.value.trim(), contact: cv, config: state, brief: briefText() })
+          body: JSON.stringify({ type: 'blueprint', name: name.value.trim(), contact: cv, config: Object.assign({ setup: 6000, currency: 'USD' }, state), brief: briefText() })
         }).then(function(r){
           if (!r.ok) throw new Error('send failed');
           form.hidden = true;

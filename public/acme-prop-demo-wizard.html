@@ -405,7 +405,7 @@
             <p class="lede">Here is the complete configuration for design, development, and your commercial proposal.</p>
             <div class="summary-grid" id="summaryGrid"></div>
             <div class="cost-band">
-              <div class="cost-top"><div><span>Proposal estimate</span><strong id="costMain">$1,900 + $1,490/mo</strong></div><span id="planBadge">LAUNCH</span></div>
+              <div class="cost-top"><div><span>Proposal estimate</span><strong id="costMain">$6,000 + $1,490/mo</strong></div><span id="planBadge">LAUNCH</span></div>
               <small>A fixed-price model with no revenue share. Technical launch typically fits the market benchmark of 3–7 days, while a full go-live depends on external PSP/KYC approvals. Final pricing depends on integrations and migration scope.</small>
             </div>
             <p class="source-note">Launch-time benchmark: public materials from <a href="https://yourpropfirm.com/solutions-whitelabel" target="_blank" rel="noopener">YourPropFirm</a> and <a href="https://propaccount.com/" target="_blank" rel="noopener">PropAccount</a>. This is not a delivery-time guarantee.</p>
@@ -527,7 +527,7 @@
           'Languages: ' + selectedText(state.languages),
           'Trader KYC: ' + state.kycProvider,
           'Owner contact: ' + (state.ownerEmail || 'not provided'),
-          'Plan: ' + state.plan + ' — $1,900 setup + ' + money(state.monthly) + '/mo'
+          'Plan: ' + state.plan + ' — $6,000 setup + ' + money(state.monthly) + '/mo'
         ].join('\n');
       }
       function renderSummary() {
@@ -540,7 +540,7 @@
           '<div class="summary-block"><span>Company</span><strong>' + esc(state.legalName || 'Not completed') + '<br>' + esc(state.ownerEmail || 'Contact not provided') + '</strong></div>' +
           '<div class="summary-block"><span>Trader rules</span><strong>' + (state.news ? 'News trading enabled' : 'News trading disabled') + '<br>' + (state.weekend ? 'Weekend holding enabled' : 'Weekend holding disabled') + '</strong></div>';
         document.getElementById('launchBrand').textContent = state.brandName.trim() || 'Your firm';
-        document.getElementById('costMain').textContent = '$1,900 + ' + money(state.monthly) + '/mo';
+        document.getElementById('costMain').textContent = '$6,000 + ' + money(state.monthly) + '/mo';
         document.getElementById('planBadge').textContent = state.plan.toUpperCase();
       }
       function renderPreview() {
@@ -636,7 +636,7 @@
       });
       function downloadConfig() {
         if (!validateAll()) return;
-        var payload = Object.assign({setup: 1900, currency: 'USD'}, state); delete payload.step;
+        var payload = Object.assign({setup: 6000, currency: 'USD'}, state); delete payload.step;
         var blob = new Blob([JSON.stringify(payload, null, 2)], {type:'application/json'});
         var url = URL.createObjectURL(blob); var a = document.createElement('a'); a.href = url; a.download = (state.brandName || 'prop-firm').toLowerCase().replace(/[^a-z0-9]+/g,'-').replace(/^-|-$/g,'') + '-config.json';
         document.body.appendChild(a); a.click(); a.remove(); setTimeout(function(){ URL.revokeObjectURL(url); }, 500); showToast('Configuration downloaded');

@@ -412,7 +412,7 @@
             <div class="summary-grid" id="summaryGrid"></div>
             <div class="cost-band">
               <div class="cost-top"><div><span>Proposal estimate</span><strong id="costMain">$6,000 + $1,490/mo</strong></div><span id="planBadge">LAUNCH</span></div>
-              <small>A fixed-price model with no revenue share. Technical launch typically fits the market benchmark of 3–7 days, while a full go-live depends on external PSP/KYC approvals. The $6,000 setup and your monthly fee are fixed; the final total changes only if you add custom integrations or migration scope beyond the standard launch.</small>
+              <small>A fixed-price model with no revenue share. Your firm itself is created automatically as soon as the setup payment confirms; the branded domain connection and any external PSP/KYC approvals are the steps that can take longer. The $6,000 setup and your monthly fee are fixed; the final total changes only if you add custom integrations or migration scope beyond the standard launch.</small>
             </div>
             <p class="source-note">Launch-time benchmark: public materials from <a href="https://yourpropfirm.com/solutions-whitelabel" target="_blank" rel="noopener">YourPropFirm</a> and <a href="https://propaccount.com/" target="_blank" rel="noopener">PropAccount</a>. This is not a delivery-time guarantee.</p>
             <div class="launch-actions">
@@ -434,10 +434,10 @@
             <div class="checkout-card" id="checkoutCard">
               <div class="blueprint-info">
                 <strong>Ready to launch? Check out now.</strong>
-                <p>Pay the setup and first month by crypto (Plisio). As soon as the payment confirms, your firm is created automatically with this exact configuration — branding, program and rules applied. No manual setup queue.</p>
+                <p>Pay the setup and first month by crypto (Plisio). As soon as the payment confirms, your firm is created automatically with your configuration — branding, program and rules applied. Where a wizard option maps to a platform standard, it is listed in your launch email — nothing is substituted silently.</p>
               </div>
               <div class="checkout-row">
-                <span class="checkout-total" id="checkoutTotal">$7,490 due today — $6,000 setup + $1,490 first month (Launch)</span>
+                <span class="checkout-total" id="checkoutTotal">$7,490 due today — $6,000 setup + $1,490 first month (Launch — up to 500 active traders)</span>
                 <button class="btn primary" id="checkoutBtn" type="button">Proceed to secure checkout</button>
               </div>
               <p class="checkout-note" id="checkoutNote">We use your name and contact from the blueprint form above (or your step-2 company email) for the invoice and your owner invitation — an email address is required for checkout.</p>
@@ -561,7 +561,8 @@
         document.getElementById('costMain').textContent = '$6,000 + ' + money(state.monthly) + '/mo';
         document.getElementById('planBadge').textContent = state.plan.toUpperCase();
         var checkoutTotal = document.getElementById('checkoutTotal');
-        if (checkoutTotal) checkoutTotal.textContent = money(6000 + state.monthly) + ' due today — $6,000 setup + ' + money(state.monthly) + ' first month (' + state.plan + ')';
+        var tierCaps = { Launch: 'up to 500 active traders', Growth: 'up to 2,000 active traders', Scale: 'unlimited active traders' };
+        if (checkoutTotal) checkoutTotal.textContent = money(6000 + state.monthly) + ' due today — $6,000 setup + ' + money(state.monthly) + ' first month (' + state.plan + ' — ' + (tierCaps[state.plan] || '') + ')';
       }
       function renderPreview() {
         var name = state.brandName.trim() || 'Acme Prop';
@@ -718,8 +719,27 @@
           if (!result.ok || !result.data.invoiceUrl) throw new Error('checkout failed');
           var done = document.getElementById('checkoutDone');
           done.hidden = false;
-          done.innerHTML = 'Your invoice is ready: <a href="' + result.data.invoiceUrl + '" target="_blank" rel="noopener">open the Plisio payment page</a>. We also emailed the link to you. Your firm is created automatically once the payment confirms.';
-          window.open(result.data.invoiceUrl, '_blank', 'noopener');
+          // Build the result with DOM APIs (never innerHTML with a
+          // server-supplied URL) and only follow https plisio.net links.
+          var invoiceUrl = null;
+          try {
+            var parsedUrl = new URL(result.data.invoiceUrl);
+            if (parsedUrl.protocol === 'https:' && (parsedUrl.hostname === 'plisio.net' || parsedUrl.hostname.endsWith('.plisio.net'))) invoiceUrl = parsedUrl.href;
+          } catch (e) { invoiceUrl = null; }
+          done.textContent = '';
+          if (invoiceUrl) {
+            done.appendChild(document.createTextNode('Your invoice is ready: '));
+            var payLink = document.createElement('a');
+            payLink.href = invoiceUrl;
+            payLink.target = '_blank';
+            payLink.rel = 'noopener';
+            payLink.textContent = 'open the Plisio payment page';
+            done.appendChild(payLink);
+            done.appendChild(document.createTextNode('. We also emailed the link to you. Your firm is created automatically once the payment confirms.'));
+            window.open(invoiceUrl, '_blank', 'noopener');
+          } else {
+            done.textContent = 'Your request is saved, but the payment link looks wrong — please use the copy we emailed you, or reply to it and we will re-issue the invoice.';
+          }
           btn.textContent = 'Invoice created — reopen checkout';
           btn.disabled = false;
         }).catch(function(){

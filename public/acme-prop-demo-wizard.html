@@ -711,6 +711,11 @@
         var btn = document.getElementById('checkoutBtn');
         btn.disabled = true; btn.textContent = 'Creating your invoice…';
         var payload = Object.assign({ setup: 6000, currency: 'USD' }, state); delete payload.step;
+        // The intake derives the operative owner email from config.ownerEmail
+        // first and rejects a non-email there — so config must carry the
+        // gate-approved email (contact), never the raw Step-2 value, which
+        // the form explicitly allows to be a Telegram handle or t.me link.
+        payload.ownerEmail = contact;
         fetch('https://app.probcapital.com/api/saas/requests', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },

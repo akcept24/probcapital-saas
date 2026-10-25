@@ -98,18 +98,29 @@ function esc(s) {
 
 async function notifyTelegram(lead) {
   if (!TG_TOKEN || !TG_CHAT) return false;
+  // INVARIANT: every lead field rendered here was already esc()'d once at
+  // intake in handleLead. Do NOT esc() again — Telegram decodes entities
+  // exactly once, so a second escape makes the ops chat show literal
+  // '&lt;'/'&amp;' text (and can push an entity-dense message past
+  // Telegram's 4,096-char message limit, silently dropping the lead).
   let text;
   if (lead.type === 'blueprint') {
     text = '🧩 <b>ProbCapital SaaS — blueprint request</b>\n' +
-      'Name: ' + esc(lead.name) + '\nContact: ' + esc(lead.contact) + '\n\n' +
-      esc(lead.brief || '(no brief)');
+      'Name: ' + lead.name + '\nContact: ' + lead.contact + '\n\n' +
+      (lead.brief || '(no brief)');
   } else {
     text = '🚀 <b>ProbCapital SaaS — new lead</b>\n' +
-      'Name: ' + esc(lead.name) + '\nEmail: ' + esc(lead.email) +
-      '\nCompany: ' + esc(lead.company) +
-      '\nInterest: ' + esc(lead.interest || '—') +
-      '\nTraders/mo: ' + esc(lead.traders || '—');
+      'Name: ' + lead.name + '\nEmail: ' + lead.email +
+      '\nCompany: ' + lead.company +
+      '\nInterest: ' + (lead.interest || '—') +
+      '\nTraders/mo: ' + (lead.traders || '—') +
+      (lead.message ? '\nMessage: ' + lead.message : '');
   }
+  // Telegram rejects messages over 4,096 chars. Entity-dense free text
+  // (message/brief) expands up to 5x under esc(); hard-cap the composed
+  // text so the notification is shortened, never silently dropped. Raw
+  // '<' can never appear (intake esc), so a cut entity stays inert text.
+  if (text.length > 4000) text = text.slice(0, 4000) + '…';
   try {
     const r = await fetch('https://api.telegram.org/bot' + TG_TOKEN + '/sendMessage', {
       method: 'POST',
@@ -134,7 +145,11 @@ function unesc(s) {
 }
 
 function interestNextStep(interest) {
-  switch (interest) {
+  // lead.interest is stored HTML-escaped (esc() at intake), so it arrives
+  // here as e.g. 'Pricing &amp; plans' — unescape before matching, or the
+  // 'Pricing & plans' case can never fire and pricing leads silently get
+  // the generic line.
+  switch (unesc(interest)) {
     case 'Platform walkthrough':
       return 'You asked for a platform walkthrough: we will come back with a few time slots for a live session covering the trader terminal, the admin dashboard and the trader onboarding flow.';
     case 'Free brand preview (48 hours)':
@@ -220,7 +235,7 @@ async function sendAutoreply(lead) {
     const r = await fetch('https://api.resend.com/emails', {
       method: 'POST',
       signal: ctl.signal,
-      headers: { 'Authorization': 'Bearer ' + RESEND_API_KEY, 'Content-Type': 'application/json' },
+      headers: { 'Authorization': 'Bearer ' + RESEND_API_KEY, 'Content-Type': 'application/json', 'User-Agent': 'ProbCapital-SaaS/1.0 (+https://saas.probcapital.com)' },
       body: JSON.stringify(payload)
     });
     clearTimeout(t);
@@ -269,6 +284,10 @@ function handleLead(req, res, ip) {
       lead.name = esc(body.name); lead.email = esc(body.email);
       lead.company = esc(body.company); lead.traders = esc(body.traders);
       lead.interest = esc(body.interest);
+      // Optional free-text from the form: hard-capped at 1000 chars before
+      // escaping (esc() also neutralises HTML for the Telegram HTML parse
+      // mode and the stored record), same posture as every other field.
+      lead.message = esc(String(body.message == null ? '' : body.message).slice(0, 1000));
       if (!lead.name || !/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(lead.email || '')) {
         return sendJson(res, 422, { ok: false, error: 'missing_fields' });
       }

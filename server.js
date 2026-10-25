@@ -61,7 +61,10 @@ function globalRateLimited() {
 // error pages all carry them). CSP notes: every page ships exactly one
 // inline <script> and inline <style> blocks and loads Google Fonts
 // (stylesheet from fonts.googleapis.com, files from fonts.gstatic.com);
-// images are local, JS fetches are same-origin ('/api/lead', '/status.json').
+// images are local, JS fetches are same-origin ('/api/lead', '/status.json')
+// plus exactly one cross-origin call: the wizard's checkout posts its
+// configuration to the platform intake at app.probcapital.com
+// ('/api/saas/requests'), which connect-src names explicitly.
 // 'unsafe-inline' in script-src/style-src is therefore required for the
 // wizard, calculator and lead form to keep working — a nonce-based CSP
 // would need a markup rewrite.
@@ -77,7 +80,7 @@ const SECURITY_HEADERS = {
     "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
     "font-src 'self' https://fonts.gstatic.com",
     "img-src 'self' data:",
-    "connect-src 'self'",
+    "connect-src 'self' https://app.probcapital.com",
     "object-src 'none'",
     "base-uri 'self'",
     "form-action 'self'",

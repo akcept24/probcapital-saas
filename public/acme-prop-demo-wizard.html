@@ -242,6 +242,12 @@
     .blueprint-form input:focus { outline:2px solid var(--accent); outline-offset:-1px; }
     .blueprint-form input.err { border-color:var(--danger); }
     .blueprint-done { margin:0; padding:12px 14px; border-radius:10px; background:var(--accent-soft); color:var(--accent-dark); font-size:13.5px; font-weight:600; }
+    .checkout-card { margin-top:17px; padding:20px; border-radius:14px; border:1px solid var(--accent); background:var(--surface); }
+    .checkout-row { display:flex; flex-wrap:wrap; align-items:center; justify-content:space-between; gap:12px; margin-top:12px; }
+    .checkout-total { font-size:15px; font-weight:700; }
+    .checkout-note { margin:12px 0 0; font-size:13px; color:var(--muted); }
+    .checkout-done { margin:12px 0 0; padding:12px 14px; border-radius:10px; background:var(--accent-soft); color:var(--accent-dark); font-size:13.5px; font-weight:600; }
+    .checkout-done a { color:var(--accent-dark); text-decoration:underline; }
     .toast { position:fixed; left:50%; bottom:24px; z-index:20; transform:translate(-50%, 18px); padding:11px 16px; border-radius:9px; background:var(--ink); color:var(--surface); box-shadow:var(--shadow); opacity:0; pointer-events:none; transition:.22s ease; font-size:11px; font-weight:800; }
     .toast.show { opacity:1; transform:translate(-50%, 0); }
     @media (max-width: 1120px) {
@@ -425,6 +431,18 @@
               </form>
               <p class="blueprint-done" id="blueprintDone" hidden>Received. We'll send your blueprint shortly.</p>
             </div>
+            <div class="checkout-card" id="checkoutCard">
+              <div class="blueprint-info">
+                <strong>Ready to launch? Check out now.</strong>
+                <p>Pay the setup and first month by crypto (Plisio). As soon as the payment confirms, your firm is created automatically with this exact configuration — branding, program and rules applied. No manual setup queue.</p>
+              </div>
+              <div class="checkout-row">
+                <span class="checkout-total" id="checkoutTotal">$7,490 due today — $6,000 setup + $1,490 first month (Launch)</span>
+                <button class="btn primary" id="checkoutBtn" type="button">Proceed to secure checkout</button>
+              </div>
+              <p class="checkout-note" id="checkoutNote">We use your name and contact from the blueprint form above (or your step-2 company email) for the invoice and your owner invitation — an email address is required for checkout.</p>
+              <p class="checkout-done" id="checkoutDone" hidden></p>
+            </div>
           </section>
         </div>
         <div class="footer-actions">
@@ -542,6 +560,8 @@
         document.getElementById('launchBrand').textContent = state.brandName.trim() || 'Your firm';
         document.getElementById('costMain').textContent = '$6,000 + ' + money(state.monthly) + '/mo';
         document.getElementById('planBadge').textContent = state.plan.toUpperCase();
+        var checkoutTotal = document.getElementById('checkoutTotal');
+        if (checkoutTotal) checkoutTotal.textContent = money(6000 + state.monthly) + ' due today — $6,000 setup + ' + money(state.monthly) + ' first month (' + state.plan + ')';
       }
       function renderPreview() {
         var name = state.brandName.trim() || 'Acme Prop';
@@ -665,6 +685,47 @@
         }).catch(function(){
           btn.disabled = false; btn.textContent = 'Send my blueprint';
           showToast('Could not send — please try again');
+        });
+      });
+      // Checkout — posts the configuration to the platform's provisioning
+      // intake (app.probcapital.com), which creates the durable request and
+      // a Plisio invoice for setup + first month. The platform recomputes
+      // the price from the plan server-side; the totals shown here are
+      // display only. The free blueprint flow above stays untouched.
+      document.getElementById('checkoutBtn').addEventListener('click', function(){
+        if (!validateAll()) return;
+        var bpName = document.getElementById('bpName').value.trim();
+        var bpContact = document.getElementById('bpContact').value.trim();
+        var name = bpName || state.legalName;
+        var contact = bpContact || state.ownerEmail;
+        var emailOk = /^[^\\s@]+@[^\\s@]+\\.[^\\s@]+$/.test(contact) || /^[^\\s@]+@[^\\s@]+\\.[^\\s@]+$/.test(state.ownerEmail);
+        var note = document.getElementById('checkoutNote');
+        if (!contact || !emailOk) {
+          note.textContent = 'Add an email first — the blueprint contact above or your company email in step 2 — so we can send the invoice and your owner invitation.';
+          showToast('An email is required for checkout');
+          return;
+        }
+        var btn = document.getElementById('checkoutBtn');
+        btn.disabled = true; btn.textContent = 'Creating your invoice…';
+        var payload = Object.assign({ setup: 6000, currency: 'USD' }, state); delete payload.step;
+        fetch('https://app.probcapital.com/api/saas/requests', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ name: name, contact: contact, config: payload, website: '' })
+        }).then(function(r){
+          return r.json().then(function(data){ return { ok: r.ok, data: data }; });
+        }).then(function(result){
+          if (!result.ok || !result.data.invoiceUrl) throw new Error('checkout failed');
+          var done = document.getElementById('checkoutDone');
+          done.hidden = false;
+          done.innerHTML = 'Your invoice is ready: <a href="' + result.data.invoiceUrl + '" target="_blank" rel="noopener">open the Plisio payment page</a>. We also emailed the link to you. Your firm is created automatically once the payment confirms.';
+          window.open(result.data.invoiceUrl, '_blank', 'noopener');
+          btn.textContent = 'Invoice created — reopen checkout';
+          btn.disabled = false;
+        }).catch(function(){
+          btn.disabled = false; btn.textContent = 'Proceed to secure checkout';
+          note.textContent = 'Checkout is unavailable right now — please send the blueprint above instead and our team will invoice you manually.';
+          showToast('Checkout unavailable — the blueprint still works');
         });
       });
       document.getElementById('resetBtn').addEventListener('click', function(){

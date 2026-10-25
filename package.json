@@ -1,1 +1,1 @@
-{"description":"ProbCapital SaaS sales landing + lead intake","engines":{"node":">=18"},"main":"server.js","name":"probcapital-saas","private":true,"scripts":{"start":"node server.js"},"version":"1.0.0"}
+{"description":"ProbCapital SaaS sales landing + lead intake","engines":{"node":">=18"},"main":"server.js","name":"probcapital-saas","private":true,"scripts":{"start":"node server.js","test":"node tests/checkout-gate.harness.mjs"},"version":"1.0.0"}

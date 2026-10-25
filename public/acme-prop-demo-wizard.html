@@ -698,8 +698,10 @@
         var bpName = document.getElementById('bpName').value.trim();
         var bpContact = document.getElementById('bpContact').value.trim();
         var name = bpName || state.legalName;
-        var contact = bpContact || state.ownerEmail;
-        var emailOk = /^[^\\s@]+@[^\\s@]+\\.[^\\s@]+$/.test(contact) || /^[^\\s@]+@[^\\s@]+\\.[^\\s@]+$/.test(state.ownerEmail);
+        var emailRe = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+        var ownerEmail = (state.ownerEmail || '').trim();
+        var contact = emailRe.test(bpContact) ? bpContact : (ownerEmail || bpContact);
+        var emailOk = emailRe.test(contact);
         var note = document.getElementById('checkoutNote');
         if (!contact || !emailOk) {
           note.textContent = 'Add an email first — the blueprint contact above or your company email in step 2 — so we can send the invoice and your owner invitation.';

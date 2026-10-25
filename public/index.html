@@ -862,7 +862,7 @@
 
   // Revenue calculator
   var tRange = document.getElementById('tRange'), pRange = document.getElementById('pRange'), planSel = document.getElementById('planSel');
-  function fmt(n){ return '$' + Math.round(n).toLocaleString('en-US'); }
+  function fmt(n){ var a = Math.abs(Math.round(n)).toLocaleString('en-US'); return (n < 0 ? '-$' : '$') + a; }
   function calc(){
     var t = parseInt(tRange.value, 10), p = parseInt(pRange.value, 10), plan = parseInt(planSel.value, 10);
     document.getElementById('tVal').textContent = t.toLocaleString('en-US');
@@ -872,7 +872,14 @@
     document.getElementById('oGross').textContent = fmt(gross);
     document.getElementById('oCost').textContent = fmt(plan);
     document.getElementById('oMargin').textContent = fmt(margin);
-    document.getElementById('oVs').innerHTML = "With a 50% rev-share provider you'd keep <b>" + fmt(keep50) + "</b> — that's <b>" + fmt(extra) + " less</b> every month.";
+    // Honest corner (scenario sweep F-CALC-1): at low volume a rev-share
+    // can genuinely beat a flat fee — then "that's $-X less" is nonsense
+    // copy. Say the true thing instead of forcing the pitch.
+    if (extra > 0) {
+      document.getElementById('oVs').innerHTML = "With a 50% rev-share provider you'd keep <b>" + fmt(keep50) + "</b> — that's <b>" + fmt(extra) + " less</b> every month.";
+    } else {
+      document.getElementById('oVs').innerHTML = "At this volume a 50% rev-share provider would keep you <b>" + fmt(keep50) + "</b> against <b>" + fmt(margin) + "</b> with us — flat pricing pulls ahead as your volume grows.";
+    }
   }
   [tRange, pRange, planSel].forEach(function(el){ el.addEventListener('input', calc); el.addEventListener('change', calc); });
   calc();

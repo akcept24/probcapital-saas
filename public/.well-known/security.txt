@@ -1,0 +1,3 @@
+Contact: mailto:security@probcapital.com
+Expires: 2027-10-27T00:00:00.000Z
+Canonical: https://saas.probcapital.com/.well-known/security.txt

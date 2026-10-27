@@ -86,6 +86,14 @@
   .hero-fig{margin-top:14px}
   .hero-fig .hero-plate{width:100%;height:auto;display:block;border:1px solid var(--line-strong);border-radius:4px}
   .hero-fig figcaption{font-family:var(--mono);font-size:12px;letter-spacing:.06em;color:var(--muted);margin-top:12px;display:flex;justify-content:space-between;gap:16px}
+  .hero-fig .plate-img{width:100%;height:auto;display:block}
+
+  /* Product plates */
+  .plate-fig{margin-top:64px}
+  .plate-fig img{width:100%;height:auto;display:block}
+  .plate-fig figcaption,.record-fig figcaption{font-family:var(--mono);font-size:12px;letter-spacing:.06em;color:var(--muted);margin-top:12px;display:flex;justify-content:space-between;gap:16px}
+  .record-fig{max-width:880px;margin-top:56px}
+  .record-fig img{width:100%;height:auto;display:block}
 
   /* Stack strip */
   .stack-strip{border-top:1px solid var(--line-strong);border-bottom:1px solid var(--line-strong);background:var(--surface)}
@@ -317,29 +325,8 @@
       <p class="hero-note" data-load="3">The demo is public. No email gate, no sales call.</p>
     </div>
     <figure class="hero-fig" data-load="2">
-      <svg class="hero-plate" viewBox="0 0 880 640" role="img" aria-label="Schematic of the ProbTrader terminal chart view">
-        <rect width="880" height="640" fill="#0C130F"/>
-        <g stroke="#223128" stroke-width="1">
-          <path d="M0 106H880M0 202H880M0 298H880M0 394H880M0 490H880M0 586H880"/>
-          <path d="M110 64V586M220 64V586M330 64V586M440 64V586M550 64V586M660 64V586M770 64V586"/>
-        </g>
-        <rect width="880" height="64" fill="#101A14"/>
-        <text x="28" y="40" font-family="IBM Plex Mono, monospace" font-size="17" letter-spacing="3" fill="#EFF1EC">PROBTRADER</text>
-        <text x="852" y="40" text-anchor="end" font-family="IBM Plex Mono, monospace" font-size="14" letter-spacing="2" fill="#7BDDB4">EUR / USD</text>
-        <path d="M0 470 L110 438 L220 452 L330 386 L440 402 L550 318 L660 336 L770 252 L880 268 L880 586 L0 586 Z" fill="#0B8F61" opacity="0.13"/>
-        <path d="M0 470 L110 438 L220 452 L330 386 L440 402 L550 318 L660 336 L770 252 L880 268" fill="none" stroke="#2FBF8F" stroke-width="3"/>
-        <path d="M0 512 L110 496 L220 502 L330 462 L440 470 L550 428 L660 436 L770 392 L880 398" fill="none" stroke="#EFF1EC" stroke-width="1.5" opacity="0.45"/>
-        <line x1="0" y1="318" x2="880" y2="318" stroke="#7BDDB4" stroke-width="1" stroke-dasharray="5 7" opacity="0.55"/>
-        <circle cx="550" cy="318" r="5" fill="#0C130F" stroke="#7BDDB4" stroke-width="2"/>
-        <g font-family="IBM Plex Mono, monospace" font-size="13" fill="#9DB1A4">
-          <text x="28" y="618">09:30</text>
-          <text x="248" y="618">10:00</text>
-          <text x="468" y="618">10:30</text>
-          <text x="688" y="618">11:00</text>
-        </g>
-        <text x="852" y="306" text-anchor="end" font-family="IBM Plex Mono, monospace" font-size="13" fill="#7BDDB4">ENTRY</text>
-      </svg>
-      <figcaption><span>ProbTrader web terminal</span><span>Public demo, this site</span></figcaption>
+      <img class="plate-img" src="/images/plate-firm-running.webp" width="2560" height="1800" alt="Laptop and phone showing NorthPeak Capital, a sample firm, running on the ProbCapital platform: the firm's name, its domain northpeak.trade and its blue brand color applied to the trader dashboard">
+      <figcaption><span>NorthPeak Capital — a sample firm, running</span><span>Configured in the public demo</span></figcaption>
     </figure>
   </div>
 </section>
@@ -383,6 +370,10 @@
         <p>We set up your brand and domain, connect the crypto checkout and configure your plans. Your firm goes live in 7 days.</p>
       </div>
     </div>
+    <figure class="plate-fig" data-rv>
+      <img src="/images/plate-configurator.webp" width="2560" height="1740" loading="lazy" alt="The launch configurator in the public demo, set to NorthPeak Capital's flagship challenge: $100K account, 1-Step evaluation, $449 fee, 10% profit target and a 90% trader profit split">
+      <figcaption><span>The configurator — step 03 · Program</span><span>NorthPeak Capital, set in the public demo</span></figcaption>
+    </figure>
   </div>
 </section>
 
@@ -661,6 +652,10 @@
     </div>
     <div class="setup-line"><b>$6,000 one-time setup</b> on every plan: brand setup, domain, launch checklist and a pilot with your team.</div>
     <p class="flat-line">Flat fee. No revenue share. No per-trader fees. Hosting included.</p>
+    <figure class="record-fig" data-rv>
+      <img src="/images/plate-launch-record.png" width="2560" height="1766" loading="lazy" alt="Launch record for the sample firm NorthPeak Capital: Growth plan at $2,490 a month, $6,000 one-time setup, flagship $100K 1-Step program at a $449 fee, 90% profit split, live in 7 days from signed agreement">
+      <figcaption><span>Sample launch record</span><span>Every figure set in the demo</span></figcaption>
+    </figure>
     <p class="fineprint price-fine">All prices in USD. The setup fee is charged once; after that, the plan price is the whole price.</p>
   </div>
 </section>

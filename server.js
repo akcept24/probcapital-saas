@@ -310,100 +310,227 @@ function handleLead(req, res, ip) {
   });
 }
 
-// ---------- Live status monitoring ----------
-// Real checks every 60s against the production services ProbCapital runs on.
-// History persists in data/status.json; the /status page renders it honestly,
-// including the day monitoring started.
-const STATUS_FILE = path.join(DATA_DIR, 'status.json');
-const SERVICES = [
-  { id: 'platform', name: 'Trader platform', desc: 'app.probcapital.com — dashboard & trading terminal',
-    url: 'https://app.probcapital.com/', test: s => s >= 200 && s < 400 },
-  { id: 'quotes', name: 'Quote Hub', desc: 'quotes.probcapital.com — live price feed',
-    url: 'https://quotes.probcapital.com/health', test: s => s === 200 },
-  { id: 'saas', name: 'SaaS platform', desc: 'saas.probcapital.com — this site, demo & lead intake',
-    url: null, test: null } // self-check: up if this process answers
+// ---------- Live status (request-time checks) ----------
+// The /status page checks each public service at the moment the page is
+// requested and reports what the check actually found — up, degraded
+// (answering, but slowly) or down — together with the time of the check.
+// A round of probes is cached for 30 seconds so a burst of page views
+// shares one set of checks instead of hammering the services.
+//
+// There is deliberately no uptime percentage and no incident history on
+// the page: public status reporting starts with this page, and a
+// percentage printed before a measured history exists behind it would be
+// an invented number. The previous background prober (60s interval,
+// history in data/status.json, rendered %) is replaced by this
+// request-time model; its old data file is simply no longer written.
+const STATUS_COMPONENTS = [
+  { id: 'saas', name: 'SaaS site & demo', detail: 'saas.probcapital.com — this site, the public demo and lead intake',
+    url: null, ok: null }, // self-check: this process answering is the check
+  { id: 'platform', name: 'Trader platform', detail: 'app.probcapital.com — trader dashboard & ProbTrader terminal',
+    url: 'https://app.probcapital.com/', ok: s => s >= 200 && s < 400 },
+  { id: 'site', name: 'Public site', detail: 'probcapital.com — the firm\u2019s public website',
+    url: 'https://probcapital.com/', ok: s => s >= 200 && s < 400 },
+  { id: 'quotes', name: 'Quote feed', detail: 'quotes.probcapital.com — live prices for the terminal',
+    url: 'https://quotes.probcapital.com/health', ok: s => s === 200 }
 ];
-let statusData = { since: null, checks: [] };
-try {
-  const saved = JSON.parse(fs.readFileSync(STATUS_FILE, 'utf8'));
-  if (saved && Array.isArray(saved.checks)) statusData = saved;
-} catch { /* first run */ }
+const STATUS_TIMEOUT_MS = 5000; // no answer within 5s counts as down
+const STATUS_SLOW_MS = 2000;    // an answer slower than 2s counts as degraded
+const STATUS_CACHE_MS = 30000;
+let statusCache = null;    // { checkedAt, components: [...] }
+let statusInflight = null; // shared promise while a probe round is running
 
-async function probe(url, test) {
+async function probeComponent(c) {
+  const base = { id: c.id, name: c.name, detail: c.detail };
+  if (!c.url) {
+    // Self-check, reported as what it is: this page is served by the SaaS
+    // site itself, so the fact that the answer rendered is the result.
+    // Not dressed up as an external probe, and no fake latency is shown.
+    return { ...base, state: 'up', httpStatus: null, latencyMs: null, note: 'This server answered your request' };
+  }
+  const started = Date.now();
   try {
     const ctl = new AbortController();
-    const t = setTimeout(() => ctl.abort(), 10000);
-    const r = await fetch(url, { signal: ctl.signal, redirect: 'follow' });
+    const t = setTimeout(() => ctl.abort(), STATUS_TIMEOUT_MS);
+    const r = await fetch(c.url, {
+      signal: ctl.signal, redirect: 'follow',
+      headers: { 'User-Agent': 'ProbCapital-Status/1.0 (+https://saas.probcapital.com/status)' }
+    });
     clearTimeout(t);
-    return test(r.status);
-  } catch { return false; }
-}
-
-async function runChecks() {
-  const rec = { t: new Date().toISOString(), saas: true };
-  for (const svc of SERVICES) {
-    if (svc.url) rec[svc.id] = await probe(svc.url, svc.test);
+    if (r.body) r.body.cancel().catch(() => {});
+    const latencyMs = Date.now() - started;
+    if (!c.ok(r.status)) {
+      return { ...base, state: 'down', httpStatus: r.status, latencyMs, note: 'Answered HTTP ' + r.status };
+    }
+    return { ...base, state: latencyMs > STATUS_SLOW_MS ? 'degraded' : 'up', httpStatus: r.status, latencyMs, note: null };
+  } catch (e) {
+    const latencyMs = Date.now() - started;
+    const why = e && e.name === 'AbortError'
+      ? 'No answer within ' + (STATUS_TIMEOUT_MS / 1000) + ' seconds'
+      : 'Could not be reached';
+    return { ...base, state: 'down', httpStatus: null, latencyMs, note: why };
   }
-  if (!statusData.since) statusData.since = rec.t;
-  statusData.checks.push(rec);
-  if (statusData.checks.length > 43200) statusData.checks = statusData.checks.slice(-43200); // ~30 days @60s
-  try {
-    fs.mkdirSync(DATA_DIR, { recursive: true });
-    fs.writeFileSync(STATUS_FILE, JSON.stringify(statusData));
-  } catch (e) { console.error('status save failed:', e.message); }
-}
-setTimeout(runChecks, 3000);
-setInterval(runChecks, 60000);
-
-function statusSummary() {
-  const total = statusData.checks.length;
-  const last = statusData.checks[total - 1] || null;
-  return SERVICES.map(svc => {
-    const upCount = statusData.checks.reduce((n, c) => n + (c[svc.id] ? 1 : 0), 0);
-    return {
-      id: svc.id, name: svc.name, desc: svc.desc,
-      up: last ? !!last[svc.id] : null,
-      uptime: total ? (100 * upCount / total) : null
-    };
-  }).map(s => ({ ...s, since: statusData.since, checks: total,
-                 lastCheck: last ? last.t : null }));
 }
 
-function statusPageHtml() {
-  const rows = statusSummary();
-  const allUp = rows.every(r => r.up);
-  const anyKnown = rows.some(r => r.up !== null);
-  const banner = !anyKnown ? 'Collecting data…' : allUp ? 'All systems operational' : 'Partial disruption — see below';
-  const bannerColor = !anyKnown ? '#9AA3C0' : allUp ? '#4ADE80' : '#E8C05F';
-  const sinceTxt = rows[0] && rows[0].since
-    ? new Date(rows[0].since).toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' }) : 'today';
-  const trs = rows.map(r => {
-    const dot = r.up === null ? '#9AA3C0' : r.up ? '#4ADE80' : '#E05F5F';
-    const label = r.up === null ? 'Checking…' : r.up ? 'Operational' : 'Down';
-    const up = r.uptime === null ? '—' : r.uptime.toFixed(2) + '%';
-    return '<tr><td><span class="dot" style="background:' + dot + '"></span><b>' + r.name + '</b><br><span class="mut">' + r.desc + '</span></td>' +
-      '<td>' + label + '</td><td>' + up + '</td></tr>';
+async function getStatus() {
+  if (statusCache && Date.now() - Date.parse(statusCache.checkedAt) < STATUS_CACHE_MS) return statusCache;
+  if (statusInflight) return statusInflight;
+  statusInflight = (async () => {
+    try {
+      const components = await Promise.all(STATUS_COMPONENTS.map(probeComponent));
+      statusCache = { checkedAt: new Date().toISOString(), components };
+      return statusCache;
+    } finally {
+      statusInflight = null;
+    }
+  })();
+  return statusInflight;
+}
+
+function overallState(components) {
+  if (components.some(c => c.state === 'down')) return 'down';
+  if (components.some(c => c.state === 'degraded')) return 'degraded';
+  return 'up';
+}
+
+const MONTHS = ['January', 'February', 'March', 'April', 'May', 'June',
+  'July', 'August', 'September', 'October', 'November', 'December'];
+function fmtUtc(iso) {
+  const d = new Date(iso);
+  const p2 = n => String(n).padStart(2, '0');
+  return d.getUTCDate() + ' ' + MONTHS[d.getUTCMonth()] + ' ' + d.getUTCFullYear() +
+    ', ' + p2(d.getUTCHours()) + ':' + p2(d.getUTCMinutes()) + ':' + p2(d.getUTCSeconds()) + ' UTC';
+}
+
+// The page is rendered in the landing's editorial paper system (cream
+// paper, Fraunces / Manrope / IBM Plex Mono, hairline rules, squared
+// shapes) — the same tokens and header/footer markup as public/index.html.
+function statusPageHtml(status) {
+  const overall = overallState(status.components);
+  const overallWord = overall === 'up' ? 'All services are up'
+    : overall === 'degraded' ? 'Services are answering, but one is slow'
+    : 'A service is down';
+  const checkedTxt = fmtUtc(status.checkedAt);
+  const launchTxt = MONTHS[new Date(status.checkedAt).getUTCMonth()] + ' ' + new Date(status.checkedAt).getUTCFullYear();
+  const stateWord = { up: 'Up', degraded: 'Degraded', down: 'Down' };
+  const stateNote = c => c.state === 'degraded' ? 'Answering, but slower than ' + (STATUS_SLOW_MS / 1000) + ' seconds'
+    : c.state === 'down' ? (c.note || 'Not answering') : (c.note || '');
+  const rows = status.components.map(c => {
+    const resp = c.latencyMs === null ? '—' : c.latencyMs.toLocaleString('en-US') + ' ms';
+    const http = c.httpStatus === null ? '—' : String(c.httpStatus);
+    const note = stateNote(c);
+    return '<tr>' +
+      '<td><b>' + esc(c.name) + '</b><br><span class="mut">' + esc(c.detail) + '</span></td>' +
+      '<td><span class="st st-' + c.state + '"><span class="sq"></span>' + stateWord[c.state] + '</span>' +
+      (note ? '<br><span class="mut">' + esc(note) + '</span>' : '') + '</td>' +
+      '<td class="mono">' + resp + '</td><td class="mono">' + http + '</td></tr>';
   }).join('');
   return '<!DOCTYPE html><html lang="en"><head><meta charset="UTF-8">' +
     '<meta name="viewport" content="width=device-width, initial-scale=1.0">' +
     '<meta http-equiv="refresh" content="60">' +
     '<title>System status — ProbCapital</title>' +
+    '<meta name="description" content="Live status of the services the ProbCapital platform runs on — checked when this page is opened, reported as found.">' +
     '<link rel="icon" type="image/svg+xml" href="/favicon.svg">' +
-    '<style>body{margin:0;background:#0A0E1A;color:#F2F4FA;font-family:system-ui,-apple-system,\'Segoe UI\',Roboto,sans-serif;padding:64px 24px}' +
-    '.wrap{max-width:760px;margin:0 auto}h1{font-size:34px;margin:0 0 6px}.mut{color:#9AA3C0;font-size:14px}' +
-    '.banner{margin:26px 0;padding:18px 22px;border:1px solid rgba(232,192,95,.35);border-radius:14px;background:#111832;font-weight:700;font-size:18px}' +
-    'table{width:100%;border-collapse:collapse;background:#111832;border:1px solid rgba(255,255,255,.08);border-radius:14px;overflow:hidden}' +
-    'td{padding:16px 18px;border-bottom:1px solid rgba(255,255,255,.06);vertical-align:top;font-size:15px}' +
-    'tr:last-child td{border-bottom:0}.dot{display:inline-block;width:10px;height:10px;border-radius:50%;margin-right:9px}' +
-    'a{color:#E8C05F}.foot{margin-top:26px;color:#9AA3C0;font-size:13.5px;line-height:1.6}</style></head><body><div class="wrap">' +
-    '<p style="color:#E8C05F;letter-spacing:.2em;font-size:12px;font-weight:700;text-transform:uppercase">ProbCapital</p>' +
-    '<h1>System status</h1><p class="mut">Live checks of the services the ProbCapital platform runs on — the same infrastructure our white-label clients get.</p>' +
-    '<div class="banner" style="color:' + bannerColor + '">' + banner + '</div>' +
-    '<table>' + trs + '</table>' +
-    '<p class="foot">Checked every 60 seconds. Uptime is measured from real probes since ' + sinceTxt + ' — no cherry-picking, no rounding up to 100%. ' +
-    'This is the stack our own firm trades on. <a href="/">← Back to the platform</a></p>' +
-    '</div></body></html>';
+    '<link rel="preconnect" href="https://fonts.googleapis.com">' +
+    '<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>' +
+    '<link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,400;0,9..144,500;0,9..144,600;0,9..144,700;1,9..144,400;1,9..144,500;1,9..144,600&family=IBM+Plex+Mono:wght@400;500;600&family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet">' +
+    '<style>' +
+    ':root{--paper:#EFF1EC;--surface:#F8F9F5;--ink:#142019;--ink-soft:#2A362E;--muted:#55635A;' +
+    '--line:#D3DAD2;--line-strong:#B9C4B8;--accent:#0B8F61;--accent-deep:#076143;--accent-soft:#D8F2E7;' +
+    '--dark:#0C130F;--dark-line:#26332B;--dark-muted:#9DB1A4;--warn:#9A6B14;--bad:#B03B2E;' +
+    '--serif:"Fraunces",Georgia,"Times New Roman",serif;--sans:"Manrope",-apple-system,"Segoe UI",Helvetica,Arial,sans-serif;' +
+    '--mono:"IBM Plex Mono",ui-monospace,SFMono-Regular,Menlo,monospace}' +
+    '*{margin:0;padding:0;box-sizing:border-box}' +
+    'body{background:var(--paper);color:var(--ink);font-family:var(--sans);font-size:16.5px;line-height:1.65;-webkit-font-smoothing:antialiased}' +
+    '::selection{background:var(--accent-soft)}a{color:var(--accent-deep)}' +
+    ':focus-visible{outline:2px solid var(--accent-deep);outline-offset:2px}' +
+    '.wrap{max-width:1240px;margin:0 auto;padding:0 32px}' +
+    'header{position:sticky;top:0;z-index:50;background:var(--paper);border-bottom:1px solid var(--line-strong)}' +
+    '.nav{display:flex;align-items:center;justify-content:space-between;height:72px}' +
+    '.wordmark{font-family:var(--serif);font-size:25px;font-weight:600;letter-spacing:-.01em;color:var(--ink);text-decoration:none}' +
+    '.wordmark span{color:var(--accent-deep);font-style:italic}' +
+    '.nav-links{display:flex;align-items:center;gap:36px}' +
+    '.nav-links a{color:var(--ink-soft);text-decoration:none;font-size:15px;font-weight:600;padding:12px 0}' +
+    '.nav-links a:hover{color:var(--accent-deep)}' +
+    '.nav-links a.btn-nav{background:var(--ink);color:var(--paper);padding:13px 24px;font-size:14.5px;border-radius:3px;border:1px solid var(--ink)}' +
+    '.nav-links a.btn-nav:hover{background:var(--accent-deep);border-color:var(--accent-deep);color:#fff}' +
+    '.burger{display:none;background:none;border:0;cursor:pointer;padding:12px}' +
+    '.burger span{display:block;width:24px;height:2px;background:var(--ink);margin:5px 0}' +
+    'main{padding:88px 0 104px}' +
+    '.kicker{display:flex;align-items:center;gap:14px;font-family:var(--mono);font-size:12px;font-weight:500;letter-spacing:.18em;text-transform:uppercase;color:var(--accent-deep);margin-bottom:26px}' +
+    '.kicker::after{content:"";height:1px;width:56px;background:var(--accent)}' +
+    'h1{font-family:var(--serif);font-weight:560;font-size:clamp(40px,5vw,64px);line-height:1.04;letter-spacing:-.015em;margin-bottom:22px}' +
+    'h1 em{font-style:italic;font-weight:500;color:var(--accent-deep)}' +
+    '.lead{color:var(--muted);font-size:18.5px;line-height:1.6;max-width:600px}' +
+    '.overall{margin:52px 0 0;background:var(--surface);border:1px solid var(--line-strong);border-radius:4px;padding:34px 40px;max-width:880px}' +
+    '.overall .o-label{font-family:var(--mono);color:var(--accent-deep);font-size:12px;letter-spacing:.16em;text-transform:uppercase;margin-bottom:12px}' +
+    '.overall .o-word{font-family:var(--serif);font-size:30px;font-weight:560;line-height:1.2}' +
+    '.overall .o-when{font-family:var(--mono);font-size:13px;letter-spacing:.04em;color:var(--muted);margin-top:14px}' +
+    '.table-scroll{overflow-x:auto;margin-top:56px;border-top:2px solid var(--ink);max-width:1000px}' +
+    'table{width:100%;border-collapse:collapse;min-width:760px;font-size:15px}' +
+    'th,td{padding:16px 18px;text-align:left;border-bottom:1px solid var(--line);vertical-align:top}' +
+    'thead th{font-family:var(--mono);font-size:12px;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);font-weight:500}' +
+    'td b{font-weight:800;letter-spacing:-.01em}' +
+    '.mut{color:var(--muted);font-size:13.5px}' +
+    '.mono{font-family:var(--mono);font-size:14px;font-variant-numeric:tabular-nums;white-space:nowrap}' +
+    '.st{font-weight:700;white-space:nowrap}.st .sq{display:inline-block;width:10px;height:10px;border-radius:2px;margin-right:10px}' +
+    '.st-up{color:var(--accent-deep)}.st-up .sq{background:var(--accent)}' +
+    '.st-degraded{color:var(--warn)}.st-degraded .sq{background:var(--warn)}' +
+    '.st-down{color:var(--bad)}.st-down .sq{background:var(--bad)}' +
+    '.notes{max-width:760px;margin-top:64px;border-top:1px solid var(--line)}' +
+    '.notes h2{font-family:var(--serif);font-size:24px;font-weight:600;margin:34px 0 14px}' +
+    '.notes p{color:var(--muted);font-size:15.5px;margin-bottom:14px;max-width:700px}' +
+    '.notes p b{color:var(--ink)}' +
+    'footer{border-top:1px solid var(--dark-line);padding:64px 0 40px;background:var(--dark);color:#EDF2EC}' +
+    'footer .wordmark{color:#F2F5F0}' +
+    '.foot{display:flex;justify-content:space-between;align-items:flex-start;gap:32px;flex-wrap:wrap}' +
+    '.foot p{color:var(--dark-muted);font-size:14px;margin-top:12px;max-width:340px}' +
+    '.foot .foot-meta{font-family:var(--mono);font-size:12.5px;letter-spacing:.05em;line-height:1.9;margin-top:18px}' +
+    '.foot-links{display:flex;gap:28px;flex-wrap:wrap}' +
+    '.foot-links a{color:#C9D4C9;text-decoration:none;font-size:14.5px;font-weight:600}' +
+    '.foot-links a:hover{color:#7BDDB4}' +
+    '.copy{margin-top:44px;padding-top:24px;border-top:1px solid var(--dark-line);color:var(--dark-muted);font-size:13px;display:flex;justify-content:space-between;flex-wrap:wrap;gap:12px}' +
+    '@media(max-width:960px){.wrap{padding:0 22px}main{padding:64px 0 76px}' +
+    '.nav-links{display:none;position:absolute;top:72px;left:0;right:0;background:var(--paper);border-bottom:1px solid var(--line-strong);padding:14px 22px 24px;flex-direction:column;align-items:stretch;gap:2px}' +
+    '.nav-links.open{display:flex}.nav-links a{padding:12px 0;font-size:16px;min-height:44px;display:flex;align-items:center}' +
+    '.nav-links a.btn-nav{margin-top:10px;justify-content:center}.burger{display:block}' +
+    '.overall{padding:28px 24px}}' +
+    '@media (prefers-reduced-motion: reduce){*,*::before,*::after{animation-duration:.001s !important;transition-duration:.001s !important}}' +
+    '</style></head><body>' +
+    '<header><div class="wrap nav">' +
+    '<a href="/" class="wordmark">Prob<span>Capital</span></a>' +
+    '<nav class="nav-links" id="navLinks">' +
+    '<a href="/#product">Product</a><a href="/#pricing">Pricing</a><a href="/#compare">Compare</a><a href="/#faq">FAQ</a>' +
+    '<a href="/acme-prop-demo-wizard.html" class="btn-nav">Live demo</a></nav>' +
+    '<button class="burger" id="burger" aria-label="Menu"><span></span><span></span><span></span></button>' +
+    '</div></header>' +
+    '<main><div class="wrap">' +
+    '<p class="kicker">System status</p>' +
+    '<h1>What the platform is doing, <em>checked just now.</em></h1>' +
+    '<p class="lead">These are the services the ProbCapital platform runs on — the same infrastructure a white-label firm gets. This page does not copy a report: it checks each service when you open it and prints what it finds.</p>' +
+    '<div class="overall"><p class="o-label">Current state</p>' +
+    '<p class="o-word">' + overallWord + '</p>' +
+    '<p class="o-when">Last checked ' + checkedTxt + ' · the page refreshes itself every 60 seconds</p></div>' +
+    '<div class="table-scroll"><table><thead><tr><th>Component</th><th>Status</th><th>Response</th><th>HTTP</th></tr></thead>' +
+    '<tbody>' + rows + '</tbody></table></div>' +
+    '<div class="notes"><h2>How to read this page</h2>' +
+    '<p><b>Checked on request.</b> Opening this page asks each service for an answer from this server. A service counts as <b>down</b> if it answers with an error or does not answer within ' + (STATUS_TIMEOUT_MS / 1000) + ' seconds, and as <b>degraded</b> if it answers correctly but takes longer than ' + (STATUS_SLOW_MS / 1000) + ' seconds. Results are cached for ' + (STATUS_CACHE_MS / 1000) + ' seconds, so the timestamp above is never older than that.</p>' +
+    '<p><b>No uptime percentage — yet.</b> Public status reporting starts with this page, in ' + launchTxt + '. There is no measured history behind a percentage today, so we do not print one: an uptime figure will appear here only once it is counted from real checks, not before.</p>' +
+    '<p><b>If something here is down, it is down for us too.</b> Our own firm trades on this stack. If a component shows down and it is affecting your firm, write to support@probcapital.com — a person answers, and this page is the first place a recovery shows.</p>' +
+    '</div>' +
+    '</div></main>' +
+    '<footer><div class="wrap"><div class="foot"><div>' +
+    '<a href="/" class="wordmark">Prob<span>Capital</span></a>' +
+    '<p>White-label prop firm platform: terminal, risk engine and trader tools under your brand.</p>' +
+    '<p class="foot-meta">ProbCapital LLC · Delaware, USA<br>Support: support@probcapital.com · Telegram: @probcapital_support</p></div>' +
+    '<div class="foot-links"><a href="/#product">Product</a><a href="/#pricing">Pricing</a><a href="/#compare">Compare</a><a href="/#faq">FAQ</a>' +
+    '<a href="/acme-prop-demo-wizard.html">Live demo</a><a href="/learn/">Learn</a><a href="/status">System status</a></div></div>' +
+    '<div class="copy"><span>© 2026 ProbCapital LLC. All rights reserved.</span>' +
+    '<span>ProbCapital LLC is a software provider, not a broker-dealer. It does not hold client funds.</span></div>' +
+    '</div></footer>' +
+    '<script>document.getElementById("burger").addEventListener("click",function(){document.getElementById("navLinks").classList.toggle("open")});</script>' +
+    '</body></html>';
 }
+
 
 const server = http.createServer((req, res) => {
   for (const [k, v] of Object.entries(SECURITY_HEADERS)) res.setHeader(k, v);
@@ -416,10 +543,24 @@ const server = http.createServer((req, res) => {
   const ip = xffEntries.length > 0 ? xffEntries[xffEntries.length - 1] : (req.socket.remoteAddress || '');
   const url = new URL(req.url, 'http://localhost');
   if (url.pathname === '/health') return sendJson(res, 200, { ok: true });
-  if (url.pathname === '/status.json') return sendJson(res, 200, { since: statusData.since, services: statusSummary() });
+  if (url.pathname === '/status.json') {
+    // Same request-time checks as the page, in machine-readable form.
+    getStatus().then(st => sendJson(res, 200, {
+      checkedAt: st.checkedAt, overall: overallState(st.components), services: st.components
+    })).catch(() => sendJson(res, 500, { ok: false, error: 'status_unavailable' }));
+    return;
+  }
   if (url.pathname === '/status') {
-    res.writeHead(200, { 'Content-Type': 'text/html; charset=utf-8', 'Cache-Control': 'no-cache' });
-    return res.end(statusPageHtml());
+    getStatus().then(st => {
+      res.writeHead(200, { 'Content-Type': 'text/html; charset=utf-8', 'Cache-Control': 'no-cache' });
+      res.end(statusPageHtml(st));
+    }).catch(() => {
+      // The probes themselves catch per-service failures, so reaching
+      // here means the checker broke — say so instead of guessing a state.
+      res.writeHead(500, { 'Content-Type': 'text/plain; charset=utf-8' });
+      res.end('Status check unavailable — please try again in a moment.');
+    });
+    return;
   }
   if (url.pathname === '/api/lead' && req.method === 'POST') return handleLead(req, res, ip);
   if (req.method !== 'GET' && req.method !== 'HEAD') { res.writeHead(405); return res.end(); }
